@@ -65,7 +65,7 @@ pub async fn clone_tier(
     if state.is_locked().await { return Err(AppError::Locked); }
     state.touch().await;
 
-    
+
     let now = now();
     let new_tier = Tier {
         id: random::new_id(), project_id: target_project_id,
@@ -74,7 +74,7 @@ pub async fn clone_tier(
     };
     queries::create_tier(&state.db, &new_tier).await?;
 
-    
+
     use sqlx::Row;
     type VarRow = (String, String, Option<String>, i64, i64);
     let vars: Vec<VarRow> = sqlx::query(
@@ -195,7 +195,7 @@ pub async fn sync_tier_to_file(tier_id: String, state: State<'_, Arc<AppState>>)
         pairs.push((key, value, description));
     }
 
-    
+
     let tier_info = sqlx::query(
         "SELECT t.name as tier_name, p.name as project_name FROM tiers t JOIN projects p ON p.id = t.project_id WHERE t.id=?"
     )

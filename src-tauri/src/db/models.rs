@@ -109,7 +109,7 @@ pub struct ParsedVariable {
 pub struct ImportPreviewItem {
     pub key: String,
     pub value: String,
-    pub status: String, 
+    pub status: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -124,5 +124,5 @@ pub struct DiffRow {
     pub key: String,
     pub left_value: Option<String>,
     pub right_value: Option<String>,
-    pub status: String, 
+    pub status: String,
 }

@@ -22,6 +22,6 @@ pub fn derive_key(password: &str, salt_hex: &str) -> Result<[u8; 32]> {
 
 pub fn generate_salt() -> String {
     let salt = SaltString::generate(&mut OsRng);
-    
+
     hex::encode(salt.as_str().as_bytes())
 }

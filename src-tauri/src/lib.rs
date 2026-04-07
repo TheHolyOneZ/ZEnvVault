@@ -20,13 +20,13 @@ pub fn run() {
             let app_handle = app.handle().clone();
 
             tauri::async_runtime::block_on(async move {
-                
+
                 let data_dir = app_handle.path().app_data_dir()
                     .expect("failed to get app data dir");
                 std::fs::create_dir_all(&data_dir).expect("failed to create data dir");
                 let db_path = data_dir.join("zvault.db");
 
-                
+
                 let opts = SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", db_path.display()))
                     .expect("bad db url")
                     .foreign_keys(true)
@@ -38,20 +38,20 @@ pub fn run() {
                     .await
                     .expect("failed to connect to db");
 
-                
+
                 db::migrations::run(&pool).await.expect("migration failed");
 
                 let app_state = Arc::new(state::AppState::new(pool));
                 app_handle.manage(app_state.clone());
 
-                
+
                 auto_lock::start_auto_lock_task(app_handle.clone());
             });
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            
+
             commands::auth::is_first_run,
             commands::auth::is_locked,
             commands::auth::setup_master_password,
@@ -61,13 +61,13 @@ pub fn run() {
             commands::auth::reset_password_with_recovery,
             commands::auth::wipe_vault,
             commands::auth::regenerate_recovery_code,
-            
+
             commands::projects::list_projects,
             commands::projects::create_project,
             commands::projects::update_project,
             commands::projects::delete_project,
             commands::projects::reorder_projects,
-            
+
             commands::tiers::list_tiers,
             commands::tiers::create_tier,
             commands::tiers::rename_tier,
@@ -77,7 +77,7 @@ pub fn run() {
             commands::tiers::link_tier_file,
             commands::tiers::unlink_tier_file,
             commands::tiers::sync_tier_to_file,
-            
+
             commands::variables::list_variables,
             commands::variables::reveal_variable,
             commands::variables::reveal_all_variables,
@@ -89,16 +89,16 @@ pub fn run() {
             commands::variables::reveal_history_value,
             commands::variables::check_auto_secret,
             commands::variables::generate_random_value,
-            
+
             commands::clipboard::copy_variable_value,
             commands::clipboard::clear_clipboard,
-            
+
             commands::import_export::preview_import,
             commands::import_export::import_env_file,
             commands::import_export::export_env_file,
-            
+
             commands::search::search_variables,
-            
+
             commands::config::get_config,
             commands::config::update_config,
             commands::config::get_audit_log,

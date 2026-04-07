@@ -8,13 +8,13 @@ pub fn parse_env_file(content: &str) -> Result<Vec<ParsedVariable>> {
     for line in content.lines() {
         let trimmed = line.trim();
 
-        
+
         if trimmed.is_empty() {
             pending_comment = None;
             continue;
         }
 
-        
+
         if trimmed.starts_with('#') {
             let comment = trimmed.trim_start_matches('#').trim().to_string();
             if !comment.is_empty() {
@@ -23,10 +23,10 @@ pub fn parse_env_file(content: &str) -> Result<Vec<ParsedVariable>> {
             continue;
         }
 
-        
+
         let line_stripped = trimmed.strip_prefix("export ").unwrap_or(trimmed).trim();
 
-        
+
         let eq_pos = line_stripped.find('=').ok_or_else(|| {
             AppError::InvalidEnvFile(format!("Line has no '=': {}", trimmed))
         })?;
@@ -38,7 +38,7 @@ pub fn parse_env_file(content: &str) -> Result<Vec<ParsedVariable>> {
             return Err(AppError::InvalidEnvFile("Empty key".into()));
         }
 
-        
+
         let value = unquote(raw_value);
 
         let description = pending_comment.take();
@@ -50,16 +50,16 @@ pub fn parse_env_file(content: &str) -> Result<Vec<ParsedVariable>> {
 }
 
 fn unquote(s: &str) -> String {
-    
+
     if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
         let inner = &s[1..s.len() - 1];
         return inner.replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
     }
-    
+
     if s.starts_with('\'') && s.ends_with('\'') && s.len() >= 2 {
         return s[1..s.len() - 1].to_string();
     }
-    
+
     if let Some(pos) = s.find(" #") {
         return s[..pos].trim().to_string();
     }
@@ -82,7 +82,7 @@ pub fn generate_env_file(pairs: &[(String, String, Option<String>)], project_nam
                 out.push_str(&format!("# {}\n", d));
             }
         }
-        
+
         if value.contains('"') || value.contains('\n') {
             let escaped = value.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n");
             out.push_str(&format!("{}=\"{}\"\n", key, escaped));

@@ -136,7 +136,7 @@ pub async fn update_variable(
     let now = now();
 
     use sqlx::Row;
-    
+
     let tier_id: String = sqlx::query("SELECT tier_id FROM variables WHERE id=?")
         .bind(&id).fetch_optional(&state.db).await?
         .map(|r: sqlx::sqlite::SqliteRow| r.get("tier_id"))
@@ -151,7 +151,7 @@ pub async fn update_variable(
     queries::add_audit(&state.db, "update", "variable", &id, Some(&key)).await?;
     maybe_auto_sync(&state, &tier_id).await;
 
-    
+
     let sort_order: i64 = sqlx::query("SELECT sort_order FROM variables WHERE id=?")
         .bind(&id).fetch_optional(&state.db).await?
         .map(|r: sqlx::sqlite::SqliteRow| r.get("sort_order")).unwrap_or(0);
@@ -170,7 +170,7 @@ pub async fn delete_variable(id: String, state: State<'_, Arc<AppState>>) -> Res
     let key: String = sqlx::query("SELECT key FROM variables WHERE id=?")
         .bind(&id).fetch_optional(&state.db).await?
         .map(|r: sqlx::sqlite::SqliteRow| r.get("key")).unwrap_or_default();
-    
+
     let tier_id: String = sqlx::query("SELECT tier_id FROM variables WHERE id=?")
         .bind(&id).fetch_optional(&state.db).await?
         .map(|r: sqlx::sqlite::SqliteRow| r.get("tier_id"))

@@ -68,7 +68,7 @@ pub async fn run(pool: &SqlitePool) -> Result<()> {
     .execute(pool)
     .await?;
 
-    
+
     let _ = sqlx::query("ALTER TABLE tiers ADD COLUMN source_path TEXT").execute(pool).await;
     let _ = sqlx::query("ALTER TABLE tiers ADD COLUMN auto_sync INTEGER NOT NULL DEFAULT 0").execute(pool).await;
 

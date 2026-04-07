@@ -217,7 +217,7 @@ pub async fn create_variable(pool: &SqlitePool, v: &VariableRaw) -> Result<()> {
 }
 
 pub async fn update_variable(pool: &SqlitePool, v: &VariableRaw) -> Result<()> {
-    
+
     let old_enc: Option<String> = sqlx::query("SELECT value_enc FROM variables WHERE id=?")
         .bind(&v.id).fetch_optional(pool).await?
         .map(|r: sqlx::sqlite::SqliteRow| r.get("value_enc"));
@@ -225,7 +225,7 @@ pub async fn update_variable(pool: &SqlitePool, v: &VariableRaw) -> Result<()> {
     if let Some(enc) = old_enc {
         sqlx::query("INSERT INTO variable_history(variable_id, value_enc, changed_at) VALUES(?,?,?)")
             .bind(&v.id).bind(&enc).bind(&v.updated_at).execute(pool).await?;
-        
+
         sqlx::query(
             "DELETE FROM variable_history WHERE variable_id=? AND id NOT IN (SELECT id FROM variable_history WHERE variable_id=? ORDER BY id DESC LIMIT 10)"
         )

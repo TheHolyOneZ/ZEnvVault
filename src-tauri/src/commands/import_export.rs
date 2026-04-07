@@ -45,7 +45,7 @@ pub async fn preview_import(path: String, tier_id: String, state: State<'_, Arc<
 pub async fn import_env_file(
     path: String,
     tier_id: String,
-    strategy: String, 
+    strategy: String,
     state: State<'_, Arc<AppState>>,
 ) -> Result<ImportResult> {
     if state.is_locked().await { return Err(AppError::Locked); }
@@ -123,7 +123,7 @@ pub async fn export_env_file(
 
     let dek = state.get_dek_bytes().await.ok_or(AppError::Locked)?;
 
-    
+
     use sqlx::Row;
     let tier_info_row = sqlx::query(
         "SELECT t.name as tier_name, p.name as project_name FROM tiers t JOIN projects p ON p.id = t.project_id WHERE t.id=?"

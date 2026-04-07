@@ -41,18 +41,15 @@ pub async fn setup_master_password(
         return Err(AppError::InvalidInput("Already initialized".into()));
     }
 
-    
     let salt = kdf::generate_salt();
     let dek = kdf::derive_key(&password, &salt)?;
     let verify_blob = aes_gcm::create_verify_blob(&dek)?;
 
-    
     let recovery_code = random::generate_recovery_code();
     let normalized = random::normalize_recovery_code(&recovery_code);
     let recovery_salt = kdf::generate_salt();
     let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
 
-    
     let recovery_dek_enc = seal_dek(&recovery_key, &dek)?;
 
     queries::set_config_value(&state.db, "argon2_salt", &salt).await?;
@@ -100,7 +97,6 @@ pub async fn reset_password_with_recovery(
         return Err(AppError::InvalidInput("Recovery code is too short".into()));
     }
 
-    
     let recovery_salt = queries::get_config_value(&state.db, "recovery_salt")
         .await
         .ok_or_else(|| AppError::InvalidInput("No recovery code registered for this vault".into()))?;
@@ -110,17 +106,14 @@ pub async fn reset_password_with_recovery(
 
     let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
 
-    
     let old_dek = unseal_dek(&recovery_key, &recovery_dek_enc)
         .map_err(|_| AppError::InvalidPassword)?;
 
-    
     let verify_blob = queries::get_config_value(&state.db, "verify_blob").await.ok_or(AppError::FirstRun)?;
     if !aes_gcm::verify_key(&old_dek, &verify_blob) {
         return Err(AppError::InvalidPassword);
     }
 
-    
     use sqlx::Row;
     let all_vars: Vec<(String, String)> = sqlx::query("SELECT id, value_enc FROM variables")
         .fetch_all(&state.db).await?
@@ -148,13 +141,11 @@ pub async fn reset_password_with_recovery(
     }
     tx.commit().await?;
 
-    
     let new_recovery_dek_enc = seal_dek(&recovery_key, &new_dek)?;
 
     queries::set_config_value(&state.db, "argon2_salt", &new_salt).await?;
     queries::set_config_value(&state.db, "verify_blob", &new_verify_blob).await?;
     queries::set_config_value(&state.db, "recovery_dek_enc", &new_recovery_dek_enc).await?;
-    
 
     *state.dek.write().await = Some(zeroize::Zeroizing::new(new_dek));
     state.touch().await;
@@ -179,7 +170,7 @@ pub async fn change_master_password(
     old_password: String,
     new_password: String,
     state: State<'_, Arc<AppState>>,
-) -> Result<()> {
+) -> Result<String> {
     if new_password.len() < 12 {
         return Err(AppError::InvalidInput("Password must be at least 12 characters".into()));
     }
@@ -218,38 +209,21 @@ pub async fn change_master_password(
     }
     tx.commit().await?;
 
-    
-    if let (Some(recovery_salt), Some(recovery_dek_enc_old)) = (
-        queries::get_config_value(&state.db, "recovery_salt").await,
-        queries::get_config_value(&state.db, "recovery_dek_enc").await,
-    ) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        let _ = (recovery_salt, recovery_dek_enc_old); 
-        queries::set_config_value(&state.db, "recovery_dek_enc", "").await?;
-        
-    }
+    let new_recovery_code = random::generate_recovery_code();
+    let normalized = random::normalize_recovery_code(&new_recovery_code);
+    let recovery_salt = kdf::generate_salt();
+    let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
+    let recovery_dek_enc = seal_dek(&recovery_key, &new_dek)?;
 
     queries::set_config_value(&state.db, "argon2_salt", &new_salt).await?;
     queries::set_config_value(&state.db, "verify_blob", &new_blob).await?;
+    queries::set_config_value(&state.db, "recovery_salt", &recovery_salt).await?;
+    queries::set_config_value(&state.db, "recovery_dek_enc", &recovery_dek_enc).await?;
 
     *state.dek.write().await = Some(zeroize::Zeroizing::new(new_dek));
     state.touch().await;
 
-    Ok(())
+    Ok(new_recovery_code)
 }
 
 #[tauri::command]
