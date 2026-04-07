@@ -23,7 +23,7 @@ Built with Tauri v2 + Rust backend, React 18 frontend.
 
 ## Download
 
-**[→ Download for Windows (NSIS installer)](https://github.com/TheHolyOneZ/ZEnvVault/releases)**
+**[→ Pre-built download at zsync.eu/zvault/](https://zsync.eu/zvault/)**
 
 Also available as MSI installer and portable `.exe`.
 
