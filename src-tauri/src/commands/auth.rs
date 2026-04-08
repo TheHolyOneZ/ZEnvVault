@@ -11,8 +11,8 @@ fn seal_dek(wrapping_key: &[u8; 32], dek: &[u8; 32]) -> Result<String> {
 }
 
 fn unseal_dek(wrapping_key: &[u8; 32], sealed: &str) -> Result<[u8; 32]> {
-    let hex_str = aes_gcm::decrypt_str(wrapping_key, sealed)?;
-    let bytes = hex::decode(&hex_str).map_err(|_| AppError::Encryption)?;
+    let hex_str = aes_gcm::decrypt_str_zeroizing(wrapping_key, sealed)?;
+    let bytes = hex::decode(hex_str.as_str()).map_err(|_| AppError::Encryption)?;
     if bytes.len() != 32 { return Err(AppError::Encryption); }
     let mut out = [0u8; 32];
     out.copy_from_slice(&bytes);
@@ -42,17 +42,18 @@ pub async fn setup_master_password(
     }
 
     let salt = kdf::generate_salt();
-    let dek = kdf::derive_key(&password, &salt)?;
+    let dek = kdf::derive_key(&password, &salt, kdf::DEFAULT_T_COST)?;
     let verify_blob = aes_gcm::create_verify_blob(&dek)?;
 
     let recovery_code = random::generate_recovery_code();
     let normalized = random::normalize_recovery_code(&recovery_code);
     let recovery_salt = kdf::generate_salt();
-    let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
+    let recovery_key = kdf::derive_key(&normalized, &recovery_salt, kdf::RECOVERY_T_COST)?;
 
     let recovery_dek_enc = seal_dek(&recovery_key, &dek)?;
 
     queries::set_config_value(&state.db, "argon2_salt", &salt).await?;
+    queries::set_config_value(&state.db, "argon2_t_cost", &kdf::DEFAULT_T_COST.to_string()).await?;
     queries::set_config_value(&state.db, "verify_blob", &verify_blob).await?;
     queries::set_config_value(&state.db, "recovery_salt", &recovery_salt).await?;
     queries::set_config_value(&state.db, "recovery_dek_enc", &recovery_dek_enc).await?;
@@ -67,7 +68,12 @@ pub async fn setup_master_password(
 pub async fn unlock(password: String, state: State<'_, Arc<AppState>>) -> Result<()> {
     let salt = queries::get_config_value(&state.db, "argon2_salt").await.ok_or(AppError::FirstRun)?;
     let verify_blob = queries::get_config_value(&state.db, "verify_blob").await.ok_or(AppError::FirstRun)?;
-    let dek = kdf::derive_key(&password, &salt)?;
+    
+    let t_cost: u32 = queries::get_config_value(&state.db, "argon2_t_cost")
+        .await
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(3);
+    let dek = kdf::derive_key(&password, &salt, t_cost)?;
     if !aes_gcm::verify_key(&dek, &verify_blob) {
         return Err(AppError::InvalidPassword);
     }
@@ -104,7 +110,7 @@ pub async fn reset_password_with_recovery(
         .await
         .ok_or_else(|| AppError::InvalidInput("No recovery data found".into()))?;
 
-    let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
+    let recovery_key = kdf::derive_key(&normalized, &recovery_salt, kdf::RECOVERY_T_COST)?;
 
     let old_dek = unseal_dek(&recovery_key, &recovery_dek_enc)
         .map_err(|_| AppError::InvalidPassword)?;
@@ -123,19 +129,19 @@ pub async fn reset_password_with_recovery(
         .into_iter().map(|r: sqlx::sqlite::SqliteRow| (r.get("id"), r.get("value_enc"))).collect();
 
     let new_salt = kdf::generate_salt();
-    let new_dek = kdf::derive_key(&new_password, &new_salt)?;
+    let new_dek = kdf::derive_key(&new_password, &new_salt, kdf::DEFAULT_T_COST)?;
     let new_verify_blob = aes_gcm::create_verify_blob(&new_dek)?;
 
     let mut tx = state.db.begin().await?;
     for (id, enc) in all_vars {
-        let plain = aes_gcm::decrypt_str(&old_dek, &enc)?;
-        let new_enc = aes_gcm::encrypt_str(&new_dek, &plain)?;
+        let plain = aes_gcm::decrypt_str_zeroizing(&old_dek, &enc)?;
+        let new_enc = aes_gcm::encrypt_str(&new_dek, plain.as_str())?;
         sqlx::query("UPDATE variables SET value_enc=? WHERE id=?")
             .bind(&new_enc).bind(&id).execute(&mut *tx).await?;
     }
     for (id, enc) in history {
-        let plain = aes_gcm::decrypt_str(&old_dek, &enc)?;
-        let new_enc = aes_gcm::encrypt_str(&new_dek, &plain)?;
+        let plain = aes_gcm::decrypt_str_zeroizing(&old_dek, &enc)?;
+        let new_enc = aes_gcm::encrypt_str(&new_dek, plain.as_str())?;
         sqlx::query("UPDATE variable_history SET value_enc=? WHERE id=?")
             .bind(&new_enc).bind(id).execute(&mut *tx).await?;
     }
@@ -144,6 +150,7 @@ pub async fn reset_password_with_recovery(
     let new_recovery_dek_enc = seal_dek(&recovery_key, &new_dek)?;
 
     queries::set_config_value(&state.db, "argon2_salt", &new_salt).await?;
+    queries::set_config_value(&state.db, "argon2_t_cost", &kdf::DEFAULT_T_COST.to_string()).await?;
     queries::set_config_value(&state.db, "verify_blob", &new_verify_blob).await?;
     queries::set_config_value(&state.db, "recovery_dek_enc", &new_recovery_dek_enc).await?;
 
@@ -177,7 +184,11 @@ pub async fn change_master_password(
 
     let salt = queries::get_config_value(&state.db, "argon2_salt").await.ok_or(AppError::FirstRun)?;
     let verify_blob = queries::get_config_value(&state.db, "verify_blob").await.ok_or(AppError::FirstRun)?;
-    let old_dek = kdf::derive_key(&old_password, &salt)?;
+    let old_t_cost: u32 = queries::get_config_value(&state.db, "argon2_t_cost")
+        .await
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(3);
+    let old_dek = kdf::derive_key(&old_password, &salt, old_t_cost)?;
     if !aes_gcm::verify_key(&old_dek, &verify_blob) {
         return Err(AppError::InvalidPassword);
     }
@@ -191,19 +202,19 @@ pub async fn change_master_password(
         .into_iter().map(|r: sqlx::sqlite::SqliteRow| (r.get("id"), r.get("value_enc"))).collect();
 
     let new_salt = kdf::generate_salt();
-    let new_dek = kdf::derive_key(&new_password, &new_salt)?;
+    let new_dek = kdf::derive_key(&new_password, &new_salt, kdf::DEFAULT_T_COST)?;
     let new_blob = aes_gcm::create_verify_blob(&new_dek)?;
 
     let mut tx = state.db.begin().await?;
     for (id, enc) in all_vars {
-        let plain = aes_gcm::decrypt_str(&old_dek, &enc)?;
-        let new_enc = aes_gcm::encrypt_str(&new_dek, &plain)?;
+        let plain = aes_gcm::decrypt_str_zeroizing(&old_dek, &enc)?;
+        let new_enc = aes_gcm::encrypt_str(&new_dek, plain.as_str())?;
         sqlx::query("UPDATE variables SET value_enc=? WHERE id=?")
             .bind(&new_enc).bind(&id).execute(&mut *tx).await?;
     }
     for (id, enc) in history {
-        let plain = aes_gcm::decrypt_str(&old_dek, &enc)?;
-        let new_enc = aes_gcm::encrypt_str(&new_dek, &plain)?;
+        let plain = aes_gcm::decrypt_str_zeroizing(&old_dek, &enc)?;
+        let new_enc = aes_gcm::encrypt_str(&new_dek, plain.as_str())?;
         sqlx::query("UPDATE variable_history SET value_enc=? WHERE id=?")
             .bind(&new_enc).bind(id).execute(&mut *tx).await?;
     }
@@ -212,10 +223,11 @@ pub async fn change_master_password(
     let new_recovery_code = random::generate_recovery_code();
     let normalized = random::normalize_recovery_code(&new_recovery_code);
     let recovery_salt = kdf::generate_salt();
-    let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
+    let recovery_key = kdf::derive_key(&normalized, &recovery_salt, kdf::RECOVERY_T_COST)?;
     let recovery_dek_enc = seal_dek(&recovery_key, &new_dek)?;
 
     queries::set_config_value(&state.db, "argon2_salt", &new_salt).await?;
+    queries::set_config_value(&state.db, "argon2_t_cost", &kdf::DEFAULT_T_COST.to_string()).await?;
     queries::set_config_value(&state.db, "verify_blob", &new_blob).await?;
     queries::set_config_value(&state.db, "recovery_salt", &recovery_salt).await?;
     queries::set_config_value(&state.db, "recovery_dek_enc", &recovery_dek_enc).await?;
@@ -235,7 +247,7 @@ pub async fn regenerate_recovery_code(state: State<'_, Arc<AppState>>) -> Result
     let recovery_code = random::generate_recovery_code();
     let normalized = random::normalize_recovery_code(&recovery_code);
     let recovery_salt = kdf::generate_salt();
-    let recovery_key = kdf::derive_key(&normalized, &recovery_salt)?;
+    let recovery_key = kdf::derive_key(&normalized, &recovery_salt, kdf::RECOVERY_T_COST)?;
     let recovery_dek_enc = seal_dek(&recovery_key, &dek)?;
 
     queries::set_config_value(&state.db, "recovery_salt", &recovery_salt).await?;

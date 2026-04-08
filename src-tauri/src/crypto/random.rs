@@ -33,9 +33,10 @@ pub fn new_id() -> String {
 }
 
 pub fn generate_recovery_code() -> String {
+    
     const CHARS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let mut rng = OsRng;
-    let groups: Vec<String> = (0..4)
+    let groups: Vec<String> = (0..6)
         .map(|_| {
             (0..5)
                 .map(|_| {

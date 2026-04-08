@@ -30,7 +30,9 @@ pub async fn get_app_config(pool: &SqlitePool) -> AppConfig {
         .map(|v| v != "0").unwrap_or(true);
     let clip = get_config_value(pool, "clipboard_clear_seconds").await
         .and_then(|v| v.parse().ok()).unwrap_or(30);
-    AppConfig { auto_lock_minutes: auto_lock, lock_on_focus_loss: lock_focus, audit_enabled: audit, clipboard_clear_seconds: clip }
+    let show_countdown = get_config_value(pool, "show_lock_countdown").await
+        .map(|v| v != "0").unwrap_or(true);
+    AppConfig { auto_lock_minutes: auto_lock, lock_on_focus_loss: lock_focus, audit_enabled: audit, clipboard_clear_seconds: clip, show_lock_countdown: show_countdown }
 }
 
 pub async fn save_app_config(pool: &SqlitePool, config: &AppConfig) -> Result<()> {
@@ -38,6 +40,7 @@ pub async fn save_app_config(pool: &SqlitePool, config: &AppConfig) -> Result<()
     set_config_value(pool, "lock_on_focus_loss", if config.lock_on_focus_loss { "1" } else { "0" }).await?;
     set_config_value(pool, "audit_enabled", if config.audit_enabled { "1" } else { "0" }).await?;
     set_config_value(pool, "clipboard_clear_seconds", &config.clipboard_clear_seconds.to_string()).await?;
+    set_config_value(pool, "show_lock_countdown", if config.show_lock_countdown { "1" } else { "0" }).await?;
     Ok(())
 }
 

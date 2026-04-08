@@ -1,6 +1,6 @@
 {
   "productName": "ZVault",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "dev.zvault.app",
   "build": {
     "frontendDist": "../dist",

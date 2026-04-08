@@ -6581,7 +6581,7 @@ dependencies = [
 
 [[package]]
 name = "zvault"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -6593,6 +6593,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "subtle",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard-manager",

@@ -74,6 +74,7 @@ pub struct AppConfig {
     pub lock_on_focus_loss: bool,
     pub audit_enabled: bool,
     pub clipboard_clear_seconds: i64,
+    pub show_lock_countdown: bool,
 }
 
 impl Default for AppConfig {
@@ -83,6 +84,7 @@ impl Default for AppConfig {
             lock_on_focus_loss: false,
             audit_enabled: true,
             clipboard_clear_seconds: 30,
+            show_lock_countdown: true,
         }
     }
 }

@@ -4,10 +4,16 @@ use argon2::{
 };
 use crate::error::{AppError, Result};
 
-pub fn derive_key(password: &str, salt_hex: &str) -> Result<[u8; 32]> {
+
+pub const DEFAULT_T_COST: u32 = 5;
+
+
+pub const RECOVERY_T_COST: u32 = 3;
+
+pub fn derive_key(password: &str, salt_hex: &str, t_cost: u32) -> Result<[u8; 32]> {
     let salt_bytes = hex::decode(salt_hex).map_err(|_| AppError::InvalidInput("bad salt".into()))?;
 
-    let params = Params::new(65536, 3, 4, Some(32))
+    let params = Params::new(65536, t_cost, 4, Some(32))
         .map_err(|_| AppError::Encryption)?;
 
     let argon2 = Argon2::new(argon2::Algorithm::Argon2id, Version::V0x13, params);

@@ -3,6 +3,8 @@ use aes_gcm::{
     Aes256Gcm, Key, Nonce,
 };
 use aes_gcm::aead::rand_core::RngCore;
+use subtle::ConstantTimeEq;
+use zeroize::Zeroizing;
 use crate::error::{AppError, Result};
 
 const VERIFY_PLAINTEXT: &[u8] = b"envvault-verify-v1";
@@ -53,13 +55,20 @@ pub fn decrypt_str(key_bytes: &[u8; 32], encoded: &str) -> Result<String> {
     String::from_utf8(bytes).map_err(|_| AppError::Encryption)
 }
 
+
+pub fn decrypt_str_zeroizing(key_bytes: &[u8; 32], encoded: &str) -> Result<Zeroizing<String>> {
+    let bytes = decrypt(key_bytes, encoded)?;
+    let s = String::from_utf8(bytes).map_err(|_| AppError::Encryption)?;
+    Ok(Zeroizing::new(s))
+}
+
 pub fn create_verify_blob(key_bytes: &[u8; 32]) -> Result<String> {
     encrypt(key_bytes, VERIFY_PLAINTEXT)
 }
 
 pub fn verify_key(key_bytes: &[u8; 32], blob: &str) -> bool {
     match decrypt(key_bytes, blob) {
-        Ok(plaintext) => plaintext == VERIFY_PLAINTEXT,
+        Ok(plaintext) => plaintext.ct_eq(VERIFY_PLAINTEXT).into(),
         Err(_) => false,
     }
 }
