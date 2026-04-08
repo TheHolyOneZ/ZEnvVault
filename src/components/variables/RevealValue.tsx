@@ -17,7 +17,7 @@ export function RevealValue({ variableId, isSecret }: RevealValueProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  
+
   useEffect(() => {
     if (!isRevealed) return;
     const timer = setTimeout(() => unreveal(variableId), 30_000);

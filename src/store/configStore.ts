@@ -11,6 +11,7 @@ const DEFAULT_CONFIG: AppConfig = {
   lock_on_focus_loss: false,
   audit_enabled: true,
   clipboard_clear_seconds: 30,
+  show_lock_countdown: true,
 };
 
 export const useConfigStore = create<ConfigState>((set) => ({

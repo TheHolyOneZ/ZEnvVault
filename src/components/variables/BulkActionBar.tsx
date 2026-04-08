@@ -24,7 +24,7 @@ export function BulkActionBar() {
         await deleteVariable(id);
         removeVariable(id);
       } catch {
-        
+
       }
     }
     clearSelection();

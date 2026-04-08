@@ -11,7 +11,7 @@ interface UiState {
   filterType: 'all' | 'secrets' | 'non-secrets';
   sortBy: 'custom' | 'az' | 'za' | 'newest' | 'oldest';
   revealedIds: Set<string>;
-  revealedValues: Record<string, string>;  
+  revealedValues: Record<string, string>;
 
   openModal: (m: Modal, editId?: string) => void;
   closeModal: () => void;

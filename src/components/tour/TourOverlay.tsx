@@ -18,9 +18,9 @@ interface StepDef {
   onEnter?: () => void;
 }
 
-const PAD  = 8;   
+const PAD  = 8;
 const TIP_W = 310;
-const GAP  = 14;  
+const GAP  = 14;
 
 export function TourOverlay() {
   const { active, step, next, skip, goTo } = useTourStore();
@@ -33,12 +33,12 @@ export function TourOverlay() {
   const [spotRect, setSpotRect] = useState<Rect | null>(null);
   const [winSize, setWinSize] = useState({ w: window.innerWidth, h: window.innerHeight });
 
-  
+
   const prevModal   = useRef<string | null>(null);
   const prevProjCnt = useRef(projects.length);
   const prevTierId  = useRef(activeTierId);
 
-  
+
   const stepDefs: StepDef[] = [
     {
       id: 'welcome',

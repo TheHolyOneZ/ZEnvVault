@@ -30,7 +30,7 @@ export default function App() {
   const clearRevealed = useUiStore((s) => s.clearRevealed);
   const initialized = useRef(false);
 
-  
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -46,7 +46,7 @@ export default function App() {
     })();
   }, []);
 
-  
+
   useEffect(() => {
     if (locked || firstRun) return;
     (async () => {
@@ -58,7 +58,7 @@ export default function App() {
     })();
   }, [locked, firstRun]);
 
-  
+
   useEffect(() => {
     const unlisten = listen('vault-locked', () => {
       setLocked(true);
@@ -67,7 +67,7 @@ export default function App() {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
-  
+
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if (locked || firstRun) return;
@@ -147,7 +147,7 @@ export default function App() {
       </div>
       <StatusBar />
 
-      
+
       <ProjectModal />
       <VariableModal />
       <ImportModal />
@@ -156,7 +156,7 @@ export default function App() {
       <SettingsModal />
       <CommandPalette />
 
-      
+
       <TourOverlay />
     </div>
   );

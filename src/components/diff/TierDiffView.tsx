@@ -71,7 +71,7 @@ export function TierDiffView() {
   return (
     <Modal open={isOpen} onClose={closeModal} title="Environment Diff" width={740}>
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        
+
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '4px' }}>Left environment</p>
@@ -95,7 +95,7 @@ export function TierDiffView() {
 
         {rows.length > 0 && (
           <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-            
+
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto',
               background: 'var(--surface-hover)', padding: '6px 10px',
@@ -120,7 +120,7 @@ export function TierDiffView() {
               </button>
             </div>
 
-            
+
             <div style={{ maxHeight: 340, overflowY: 'auto' }}>
               {rows.map((row, i) => (
                 <div key={row.key} style={{
@@ -129,12 +129,12 @@ export function TierDiffView() {
                   borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
                   background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
                 }}>
-                  
+
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500, color: 'var(--mono-text)' }}>
                     {row.key}
                   </span>
 
-                  
+
                   <DiffCell
                     value={row.left_value}
                     status={row.status}
@@ -144,7 +144,7 @@ export function TierDiffView() {
                     statusColor={statusColor(row.status)}
                   />
 
-                  
+
                   <DiffCell
                     value={row.right_value}
                     status={row.status}
@@ -154,7 +154,7 @@ export function TierDiffView() {
                     statusColor={statusColor(row.status)}
                   />
 
-                  
+
                   <button
                     onClick={() => {
                       const bothRevealed = isRevealed(row.key, 'left') && isRevealed(row.key, 'right');
@@ -187,7 +187,7 @@ export function TierDiffView() {
               ))}
             </div>
 
-            
+
             <div style={{ padding: '8px 10px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
               <span><span style={{ color: 'var(--red)' }}>●</span> Left only</span>
               <span><span style={{ color: 'var(--green)' }}>●</span> Right only</span>

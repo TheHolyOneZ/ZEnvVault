@@ -35,7 +35,7 @@ export function ImportModal() {
   const projectTiers = activeProjectId ? (tiers[activeProjectId] ?? []) : [];
   const activeTier = projectTiers.find((t) => t.id === activeTierId);
 
-  
+
   useEffect(() => {
     if (!isOpen) return;
     let unlisten: (() => void) | undefined;
@@ -102,7 +102,7 @@ export function ImportModal() {
       const vars = await listVariables(activeTierId);
       setVariables(vars);
 
-      
+
       if (linkFile && filePath) {
         const updatedTier = await linkTierFile(activeTierId, filePath, autoSync);
         upsertTier(activeProjectId, updatedTier);
@@ -127,7 +127,7 @@ export function ImportModal() {
     <Modal open={isOpen} onClose={handleClose} title="Import .env File" width={560}>
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-        
+
         <div style={{
           padding: '8px 12px', borderRadius: 'var(--r-md)',
           background: 'var(--surface-hover)', border: '1px solid var(--border)',
@@ -146,7 +146,7 @@ export function ImportModal() {
 
         {step === 1 && (
           <>
-            
+
             <div
               onClick={handleBrowse}
               style={{
@@ -209,7 +209,7 @@ export function ImportModal() {
               })}
             </div>
 
-            
+
             <div>
               <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-dim)', marginBottom: '8px' }}>How to handle existing keys?</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -234,7 +234,7 @@ export function ImportModal() {
               </div>
             </div>
 
-            
+
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                 <input type="checkbox" checked={linkFile} onChange={(e) => setLinkFile(e.target.checked)}

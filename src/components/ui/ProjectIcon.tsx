@@ -9,8 +9,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 export interface IconOption {
-  name: string;       
-  label: string;      
+  name: string;
+  label: string;
   Icon: LucideIcon;
 }
 
@@ -40,7 +40,7 @@ export const PROJECT_ICONS: IconOption[] = [
 const ICON_MAP = new Map(PROJECT_ICONS.map((o) => [o.name, o.Icon]));
 
 interface ProjectIconProps {
-  name: string;           
+  name: string;
   size?: number;
   color?: string;
   strokeWidth?: number;
@@ -51,6 +51,6 @@ export function ProjectIcon({ name, size = 14, color = 'currentColor', strokeWid
   if (Icon) {
     return <Icon size={size} color={color} strokeWidth={strokeWidth} />;
   }
-  
+
   return <span style={{ fontSize: size * 0.9, lineHeight: 1 }}>{name}</span>;
 }

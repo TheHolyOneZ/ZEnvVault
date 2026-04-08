@@ -7,6 +7,8 @@ import { VariableTable } from '@/components/variables/VariableTable';
 import { BulkActionBar } from '@/components/variables/BulkActionBar';
 import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { ZLogo } from '@/components/ui/ZLogo';
 import { X, RefreshCw } from 'lucide-react';
 
 export function MainPanel() {
@@ -128,15 +130,35 @@ export function MainPanel() {
 
   if (!activeProjectId) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px' }}>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Select a project from the sidebar</p>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '20px' }}>
+        <ZLogo size={52} radius="var(--r-xl)" style={{ boxShadow: '0 4px 20px rgba(124,106,247,0.25)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 6px', color: 'var(--text)' }}>
+            ZVault
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+            Select or create a project to get started
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <Badge variant="accent">Encrypted</Badge>
+          <span style={{ color: 'var(--border-strong)', fontSize: '12px' }}>·</span>
+          <Badge variant="default">Offline</Badge>
+          <span style={{ color: 'var(--border-strong)', fontSize: '12px' }}>·</span>
+          <Badge variant="default">Organized</Badge>
+        </div>
+        <Button variant="primary" onClick={() => openModal('project')}
+          icon={<span style={{ fontSize: '16px', fontWeight: 300 }}>+</span>}
+        >
+          New project
+        </Button>
       </div>
     );
   }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-      
+
       <div
         data-tour="main-env-tabs"
         style={{
@@ -145,7 +167,7 @@ export function MainPanel() {
           background: 'var(--surface)', flexShrink: 0, overflowX: 'auto',
           height: 40,
         }}>
-        
+
         <span
           title="Environments separate your variables by context — e.g. dev, staging, prod"
           style={{
@@ -242,9 +264,9 @@ export function MainPanel() {
           >+</button>
         )}
 
-        
+
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', alignItems: 'center' }}>
-          
+
           {activeTierId && !activeTier?.source_path && (
             <button
               onClick={handleLinkFile}
@@ -280,13 +302,13 @@ export function MainPanel() {
         </div>
       </div>
 
-      
+
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
         padding: '8px 12px', borderBottom: '1px solid var(--border)',
         background: 'var(--surface)', flexShrink: 0,
       }}>
-        
+
         <div style={{ position: 'relative', flex: 1, maxWidth: 300 }}>
           <input
             ref={searchRef}
@@ -304,29 +326,44 @@ export function MainPanel() {
           </svg>
         </div>
 
-        
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as typeof filterType)}
-          style={{ padding: '5px 8px', background: 'var(--surface-input)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: '12px', color: 'var(--text-dim)' }}
-        >
-          <option value="all">All</option>
-          <option value="secrets">Secrets only</option>
-          <option value="non-secrets">Non-secrets only</option>
-        </select>
 
-        
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          style={{ padding: '5px 8px', background: 'var(--surface-input)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: '12px', color: 'var(--text-dim)' }}
-        >
-          <option value="custom">Custom order</option>
-          <option value="az">A → Z</option>
-          <option value="za">Z → A</option>
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-        </select>
+        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+          {([['all', 'All'], ['secrets', 'Secrets'], ['non-secrets', 'Non-secrets']] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setFilterType(val)}
+              style={{
+                padding: '3px 10px', borderRadius: 'var(--r-full)', fontSize: '11px', fontWeight: 500,
+                background: filterType === val ? 'var(--surface-hover)' : 'transparent',
+                border: `1px solid ${filterType === val ? 'var(--border-strong)' : 'var(--border)'}`,
+                color: filterType === val ? 'var(--text)' : 'var(--text-muted)',
+                cursor: 'pointer', transition: 'all 100ms',
+              }}
+            >{label}</button>
+          ))}
+        </div>
+
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            style={{
+              padding: '4px 26px 4px 10px',
+              background: 'var(--surface-input)', border: '1px solid var(--border)',
+              borderRadius: 'var(--r-full)', fontSize: '11px', color: 'var(--text-dim)',
+              appearance: 'none', cursor: 'pointer', outline: 'none',
+            }}
+          >
+            <option value="custom">Custom</option>
+            <option value="az">A → Z</option>
+            <option value="za">Z → A</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+          <svg style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
 
         <Button size="sm" variant="primary" onClick={() => openModal('variable')}
           icon={<span style={{ fontSize: '16px', fontWeight: 300 }}>+</span>}
@@ -335,7 +372,7 @@ export function MainPanel() {
         </Button>
       </div>
 
-      
+
       {activeTier?.source_path && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '8px',
@@ -399,12 +436,12 @@ export function MainPanel() {
         </div>
       )}
 
-      
+
       <div style={{ paddingTop: '8px' }}>
         <BulkActionBar />
       </div>
 
-      
+
       <div data-tour="main-var-table" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <VariableTable />
       </div>

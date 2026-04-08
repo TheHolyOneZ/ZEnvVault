@@ -52,7 +52,7 @@ export function VariableModal() {
         setKey(v.key);
         setDescription(v.description ?? '');
         setIsSecret(v.is_secret);
-        
+
         revealVariable(editId).then(setValue).catch(() => setValue(''));
       }
     } else {

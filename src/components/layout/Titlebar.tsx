@@ -34,7 +34,7 @@ export function Titlebar() {
         zIndex: 100,
       }}
     >
-      
+
       <div data-tour="titlebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 120 }}>
         <ZLogo size={22} radius="5px" />
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
@@ -43,7 +43,7 @@ export function Titlebar() {
         <span style={{ fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.04em', marginLeft: '-2px' }}>by TheHolyOneZ</span>
       </div>
 
-      
+
       <div data-tauri-drag-region style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', flex: 1, justifyContent: 'center' }}>
         {activeProject ? (
           <>
@@ -64,9 +64,9 @@ export function Titlebar() {
         )}
       </div>
 
-      
+
       <div style={{ display: 'flex', alignItems: 'stretch', height: '100%', marginLeft: 'auto' }}>
-        
+
         <TitleBtn onClick={handleLock} title="Lock vault (Ctrl+L)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -75,19 +75,19 @@ export function Titlebar() {
 
         <div style={{ width: '1px', background: 'var(--border)', margin: '8px 0' }} />
 
-        
+
         <TitleBtn onClick={handleMinimize} title="Minimize">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
         </TitleBtn>
-        
+
         <TitleBtn onClick={handleMaximize} title="Maximize / Restore">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <rect x="4" y="4" width="16" height="16" rx="1.5"/>
           </svg>
         </TitleBtn>
-        
+
         <TitleBtn onClick={handleClose} danger title="Close to tray">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

@@ -1,30 +1,30 @@
 :root {
-  /* Backgrounds */
+
   --bg:             #080809;
   --surface:        #0E0E10;
   --surface-up:     #141416;
   --surface-hover:  #1C1C1F;
   --surface-input:  #242428;
 
-  /* Borders */
+
   --border:         #2A2A2E;
   --border-strong:  #3A3A3F;
   --border-focus:   #7C6AF7;
 
-  /* Text */
+
   --text:           #F0F0F2;
   --text-dim:       #8A8A92;
   --text-muted:     #52525A;
   --text-on-accent: #FFFFFF;
 
-  /* Accent — purple-indigo */
+
   --accent:         #7C6AF7;
   --accent-hover:   #9585F9;
   --accent-active:  #6A58E5;
   --accent-sub:     rgba(124, 106, 247, 0.12);
   --accent-border:  rgba(124, 106, 247, 0.35);
 
-  /* Status colors */
+
   --green:          #34C97A;
   --green-sub:      rgba(52, 201, 122, 0.12);
   --amber:          #F5A623;
@@ -32,14 +32,14 @@
   --red:            #FF453A;
   --red-sub:        rgba(255, 69, 58, 0.12);
 
-  /* Mono text */
+
   --mono-text:      #C9C9FF;
 
-  /* Typography */
+
   --font-ui:        'Inter', system-ui, -apple-system, sans-serif;
   --font-mono:      'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
 
-  /* Spacing */
+
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -49,19 +49,19 @@
   --sp-8: 32px;
   --sp-12: 48px;
 
-  /* Radius */
+
   --r-sm: 3px;
   --r-md: 6px;
   --r-lg: 10px;
   --r-xl: 16px;
   --r-full: 9999px;
 
-  /* Shadows */
+
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
 
-  /* Sidebar */
+
   --sidebar-w: 240px;
   --titlebar-h: 40px;
   --statusbar-h: 28px;

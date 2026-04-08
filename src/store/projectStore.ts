@@ -5,7 +5,7 @@ interface ProjectState {
   projects: Project[];
   activeProjectId: string | null;
   activeTierId: string | null;
-  tiers: Record<string, Tier[]>;       
+  tiers: Record<string, Tier[]>;
   variables: Variable[];
   setProjects: (projects: Project[]) => void;
   setActiveProject: (id: string | null) => void;

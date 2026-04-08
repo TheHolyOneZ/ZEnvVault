@@ -55,7 +55,7 @@ export function ProjectModal() {
       } else {
         const created = await createProject(name.trim(), description || undefined, color, icon || undefined);
         upsertProject(created);
-        
+
         setActiveProject(created.id);
         const tiers = await listTiers(created.id);
         setTiers(created.id, tiers);
@@ -128,7 +128,7 @@ export function ProjectModal() {
         <div>
           <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-dim)', marginBottom: '8px' }}>Icon <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            
+
             <button
               onClick={() => setIcon('')}
               title="No icon"

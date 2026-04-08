@@ -15,7 +15,7 @@ export const regenerateRecoveryCode = () => invoke<string>('regenerate_recovery_
 export const unlock = (password: string) => invoke<void>('unlock', { password });
 export const lock = () => invoke<void>('lock');
 export const changeMasterPassword = (oldPassword: string, newPassword: string) =>
-  invoke<void>('change_master_password', { oldPassword, newPassword });
+  invoke<string>('change_master_password', { oldPassword, newPassword });
 
 export const listProjects = () => invoke<Project[]>('list_projects');
 export const createProject = (name: string, description?: string, color?: string, icon?: string) =>

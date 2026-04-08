@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUiStore } from '@/store/uiStore';
 import { VariableRow } from './VariableRow';
 import { EmptyState } from './EmptyState';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import type { Variable } from '@/types';
 
 export function VariableTable() {
@@ -13,8 +14,16 @@ export function VariableTable() {
   const filterType = useUiStore((s) => s.filterType);
   const sortBy = useUiStore((s) => s.sortBy);
 
+  const setSortBy = useUiStore((s) => s.setSortBy);
+  const [keyHovered, setKeyHovered] = useState(false);
+
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const projectColor = activeProject?.color ?? 'var(--accent)';
+
+  function handleKeyHeaderClick() {
+    if (sortBy === 'az') setSortBy('za');
+    else setSortBy('az');
+  }
 
   const filtered = useMemo(() => {
     let vars = [...variables];
@@ -40,20 +49,39 @@ export function VariableTable() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-      
+
       <div style={{
         display: 'grid', gridTemplateColumns: '28px 1fr 1fr 1fr auto',
         alignItems: 'center', gap: '8px',
         padding: '0 12px', height: 32, flexShrink: 0,
         background: 'var(--surface)', borderBottom: '1px solid var(--border)',
-        fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
+        fontSize: '11px', fontWeight: 600,
         textTransform: 'uppercase', letterSpacing: '0.06em',
       }}>
         <div />
-        <span>Key</span>
-        <span>Value</span>
-        <span>Description</span>
-        <span>Actions</span>
+
+        <span
+          onClick={handleKeyHeaderClick}
+          onMouseEnter={() => setKeyHovered(true)}
+          onMouseLeave={() => setKeyHovered(false)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+            color: (sortBy === 'az' || sortBy === 'za') ? 'var(--accent)' : keyHovered ? 'var(--text-dim)' : 'var(--text-muted)',
+            transition: 'color 100ms', userSelect: 'none',
+          }}
+        >
+          Key
+          {sortBy === 'az'
+            ? <ChevronUp   size={11} strokeWidth={2.5} />
+            : sortBy === 'za'
+            ? <ChevronDown size={11} strokeWidth={2.5} />
+            : <ChevronsUpDown size={10} strokeWidth={2} style={{ opacity: keyHovered ? 0.6 : 0.3 }} />
+          }
+        </span>
+
+        <span style={{ color: 'var(--text-muted)' }}>Value</span>
+        <span style={{ color: 'var(--text-muted)' }}>Description</span>
+        <span style={{ color: 'var(--text-muted)' }}>Actions</span>
       </div>
 
       {filtered.length === 0 && (

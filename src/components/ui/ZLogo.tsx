@@ -15,7 +15,7 @@ export function ZLogo({
   svgFill = '#fff',
   style,
 }: ZLogoProps) {
-  
+
   const padding = size * 0.18;
   const innerSize = size - padding * 2;
 

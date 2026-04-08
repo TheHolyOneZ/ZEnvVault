@@ -35,7 +35,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     };
   }, [onClose]);
 
-  
+
   const menuWidth = 200;
   const estHeight = items.length * 32;
   const left = Math.min(x, window.innerWidth - menuWidth - 8);

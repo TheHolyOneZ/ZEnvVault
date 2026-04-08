@@ -111,7 +111,7 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
           userSelect: 'none',
         }}
       >
-        
+
         <div onClick={(e) => { e.stopPropagation(); toggleSelect(variable.id); }}
           style={{
             width: 16, height: 16, borderRadius: 4, border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
@@ -122,24 +122,24 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
           }}
         >{isSelected && <Check size={10} strokeWidth={3} />}</div>
 
-        
+
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500,
           color: 'var(--mono-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{variable.key}</span>
 
-        
+
         <div onClick={(e) => e.stopPropagation()}>
           <RevealValue variableId={variable.id} isSecret={variable.is_secret} />
         </div>
 
-        
+
         <span style={{
           fontSize: '12px', color: 'var(--text-muted)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{variable.description || ''}</span>
 
-        
+
         <div
           onClick={(e) => e.stopPropagation()}
           style={{

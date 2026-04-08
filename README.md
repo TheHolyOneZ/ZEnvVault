@@ -11,12 +11,14 @@ Built with Tauri v2 + Rust backend, React 18 frontend.
 ## Features
 
 - **AES-256-GCM encryption** — each variable value encrypted individually with a unique random nonce
-- **Argon2id key derivation** — 64 MB memory, 3 iterations, 4 threads; brute force is expensive by design
+- **Argon2id key derivation** — 64 MB memory, 5 iterations, 4 threads; brute force is expensive by design
 - **Project → Environment → Variable hierarchy** — organize secrets by project and stage (dev, staging, prod)
 - **Live .env file sync** — link any environment to a file on disk; import with a visual diff preview
-- **Auto-lock** — configurable timer (1m / 5m / 15m / 30m / never); DEK zeroed on every lock
-- **Audit log** — every reveal, copy, import, export, lock, and unlock recorded with a timestamp
+- **Auto-lock** — configurable timer (1m / 5m / 15m / 30m / never); DEK zeroed on every lock; optional status bar countdown (amber at ≤5 min, red at ≤60 s)
+- **Audit log** — every reveal, copy, import, export, lock, and unlock recorded; filterable by type with date grouping
 - **Recovery code** — reset your master password without losing any data
+- **Command palette** — `Ctrl+K` quick-access to all actions
+- **Bulk operations** — select multiple variables to delete or manage at once
 - **100% offline** — no network requests, no accounts, no telemetry, no cloud
 
 ---
@@ -37,18 +39,23 @@ Requires Windows 10/11 x64.
 |-----------|--------|--------|
 | Encryption | AES-256-GCM | Authenticated encryption; each value gets a unique 96-bit nonce |
 | Key derivation | Argon2id | Memory-hard; winner of Password Hashing Competition |
-| Key storage | `SecretBox<[u8;32]>` (secrecy crate) | Zeroed on drop, never serialized |
+| KDF parameters | 64 MB memory, 5 iterations, 4 threads | OWASP-recommended minimum for Argon2id (upgraded from 3 in v0.3.0) |
+| KDF params stored per-vault | `argon2_t_cost` in DB | Allows future upgrades without breaking existing vaults |
+| Key storage | `Zeroizing<[u8;32]>` (zeroize crate) | Zeroed on drop, never serialized |
+| Plaintext intermediates | `Zeroizing<String>` during re-encryption | Secret values overwritten in RAM immediately after use |
 | On lock | `dek.zeroize()` | Overwrites memory byte-by-byte, not just freed |
+| Verify blob comparison | `subtle::ConstantTimeEq` | Constant-time; no timing side-channel on password verification |
+| Recovery code | 30 chars (6×5) from 32-symbol alphabet | ~150 bits entropy; above 128-bit offline-attack threshold |
 | Database | SQLite (local) | Single file, no server, no network |
 | Only values encrypted | Keys and descriptions are plaintext | Acceptable trade-off; only secrets need protection |
 
-The master password is never stored. A verification blob (AES-GCM of a known constant) is stored so the app can confirm an unlock attempt is correct without persisting the password or key.
+The master password is never stored. A verification blob (AES-GCM of a known constant, compared in constant time) is stored so the app can confirm an unlock attempt is correct without persisting the password or key.
 
 ---
 
 ## Building from source
 
-**Prerequisites:** Rust (stable), Node.js 18+, pnpm
+**Prerequisites:** Rust (stable), Node.js 18+, npm
 
 ```bash
 git clone https://github.com/TheHolyOneZ/ZEnvVault
@@ -65,8 +72,8 @@ npm run tauri build
 ```
 
 Output: `src-tauri/target/release/bundle/`
-- `nsis/ZVault_0.1.0_x64-setup.exe` — NSIS installer (~2.4 MB)
-- `msi/ZVault_0.1.0_x64_en-US.msi` — MSI installer (~3.3 MB)
+- `nsis/ZVault_0.3.0_x64-setup.exe` — NSIS installer
+- `msi/ZVault_0.3.0_x64_en-US.msi` — MSI installer
 
 ---
 

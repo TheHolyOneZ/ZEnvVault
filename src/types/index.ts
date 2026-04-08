@@ -44,6 +44,7 @@ export interface AppConfig {
   lock_on_focus_loss: boolean;
   audit_enabled: boolean;
   clipboard_clear_seconds: number;
+  show_lock_countdown: boolean;
 }
 
 export interface SearchResult {
