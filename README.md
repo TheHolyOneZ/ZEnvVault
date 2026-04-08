@@ -35,45 +35,78 @@ Requires Windows 10/11 x64.
 
 ## Screenshots
 
+<details>
+<summary><b>🖥️ Main interface</b></summary>
+<br>
 <div align="center">
-
-<img src="Images/login.png" alt="Login screen" width="480"/>
-
-<br><br>
-
 <img src="Images/ExampleMainView.png" alt="Main view" width="720"/>
-
 <br><br>
-
 <table>
 <tr>
-<td><img src="Images/ExampleInsideenv.png" alt="Variables inside environment" width="360"/></td>
-<td><img src="Images/NewProject.png" alt="New project dialog" width="360"/></td>
-</tr>
-<tr>
-<td><img src="Images/ExampleImportEnvFile-diff.png" alt="Import .env diff preview" width="360"/></td>
-<td><img src="Images/RightClickContextMenuInsideEnv.png" alt="Right-click context menu" width="360"/></td>
-</tr>
-<tr>
-<td><img src="Images/ShortCut_ctrl+k-CommandPallete.png" alt="Command palette (Ctrl+K)" width="360"/></td>
-<td><img src="Images/ResetPassword.png" alt="Reset password with recovery code" width="360"/></td>
+<td align="center"><img src="Images/ExampleInsideenv.png" alt="Variables inside environment" width="360"/><br><sub>Variables — environment view</sub></td>
+<td align="center"><img src="Images/RightClickContextMenuInsideEnv.png" alt="Right-click context menu" width="360"/><br><sub>Right-click context menu</sub></td>
 </tr>
 </table>
-
-**Settings**
-
-<table>
-<tr>
-<td><img src="Images/Settings-Security.png" alt="Settings — Security" width="240"/></td>
-<td><img src="Images/Settings-Auditlogs.png" alt="Settings — Audit log" width="240"/></td>
-<td><img src="Images/Settings-Data.png" alt="Settings — Data" width="240"/></td>
-<td><img src="Images/Settings-Shortcuts.png" alt="Settings — Shortcuts" width="240"/></td>
-</tr>
-</table>
-
-<img src="Images/Start CompletlyFresh-Wipemyvault.png" alt="Wipe vault / fresh start" width="480"/>
-
 </div>
+</details>
+
+<details>
+<summary><b>🔍 Command palette &amp; search</b></summary>
+<br>
+<div align="center">
+<img src="Images/ShortCut_ctrl+k-CommandPallete.png" alt="Command palette (Ctrl+K)" width="600"/>
+<br><sub>Command palette — Ctrl+K</sub>
+</div>
+</details>
+
+<details>
+<summary><b>📥 Import &amp; export</b></summary>
+<br>
+<div align="center">
+<img src="Images/ExampleImportEnvFile-diff.png" alt="Import .env diff preview" width="640"/>
+<br><sub>Import .env — visual diff preview before committing</sub>
+</div>
+</details>
+
+<details>
+<summary><b>🔐 Security &amp; auth</b></summary>
+<br>
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="Images/login.png" alt="Login screen" width="340"/><br><sub>Login screen</sub></td>
+<td align="center"><img src="Images/ResetPassword.png" alt="Reset password" width="340"/><br><sub>Reset with recovery code</sub></td>
+</tr>
+<tr>
+<td align="center" colspan="2"><img src="Images/Start CompletlyFresh-Wipemyvault.png" alt="Wipe vault" width="400"/><br><sub>Wipe vault — fresh start</sub></td>
+</tr>
+</table>
+</div>
+</details>
+
+<details>
+<summary><b>⚙️ Settings</b></summary>
+<br>
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="Images/Settings-Security.png" alt="Settings — Security" width="220"/><br><sub>Security</sub></td>
+<td align="center"><img src="Images/Settings-Auditlogs.png" alt="Settings — Audit log" width="220"/><br><sub>Audit log</sub></td>
+<td align="center"><img src="Images/Settings-Data.png" alt="Settings — Data" width="220"/><br><sub>Data</sub></td>
+<td align="center"><img src="Images/Settings-Shortcuts.png" alt="Settings — Shortcuts" width="220"/><br><sub>Shortcuts</sub></td>
+</tr>
+</table>
+</div>
+</details>
+
+<details>
+<summary><b>📁 Project management</b></summary>
+<br>
+<div align="center">
+<img src="Images/NewProject.png" alt="New project dialog" width="480"/>
+<br><sub>New project dialog</sub>
+</div>
+</details>
 
 ---
 
