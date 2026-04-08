@@ -33,6 +33,50 @@ Requires Windows 10/11 x64.
 
 ---
 
+## Screenshots
+
+<div align="center">
+
+<img src="Images/login.png" alt="Login screen" width="480"/>
+
+<br><br>
+
+<img src="Images/ExampleMainView.png" alt="Main view" width="720"/>
+
+<br><br>
+
+<table>
+<tr>
+<td><img src="Images/ExampleInsideenv.png" alt="Variables inside environment" width="360"/></td>
+<td><img src="Images/NewProject.png" alt="New project dialog" width="360"/></td>
+</tr>
+<tr>
+<td><img src="Images/ExampleImportEnvFile-diff.png" alt="Import .env diff preview" width="360"/></td>
+<td><img src="Images/RightClickContextMenuInsideEnv.png" alt="Right-click context menu" width="360"/></td>
+</tr>
+<tr>
+<td><img src="Images/ShortCut_ctrl+k-CommandPallete.png" alt="Command palette (Ctrl+K)" width="360"/></td>
+<td><img src="Images/ResetPassword.png" alt="Reset password with recovery code" width="360"/></td>
+</tr>
+</table>
+
+**Settings**
+
+<table>
+<tr>
+<td><img src="Images/Settings-Security.png" alt="Settings — Security" width="240"/></td>
+<td><img src="Images/Settings-Auditlogs.png" alt="Settings — Audit log" width="240"/></td>
+<td><img src="Images/Settings-Data.png" alt="Settings — Data" width="240"/></td>
+<td><img src="Images/Settings-Shortcuts.png" alt="Settings — Shortcuts" width="240"/></td>
+</tr>
+</table>
+
+<img src="Images/Start CompletlyFresh-Wipemyvault.png" alt="Wipe vault / fresh start" width="480"/>
+
+</div>
+
+---
+
 ## Security design
 
 | Component | Choice | Reason |
