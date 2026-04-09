@@ -3,17 +3,24 @@ import { Check, X, AlertTriangle, Info } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   message: string;
   type: ToastType;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  toast: (message: string, type?: ToastType) => void;
+  toast: (message: string, type?: ToastType, action?: ToastAction) => void;
+  dismissToast: (id: number) => void;
 }
 
-const ToastContext = createContext<ToastContextValue>({ toast: () => {} });
+const ToastContext = createContext<ToastContextValue>({ toast: () => {}, dismissToast: () => {} });
 
 export function useToast() {
   return useContext(ToastContext);
@@ -23,10 +30,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   let counter = 0;
 
-  const toast = useCallback((message: string, type: ToastType = 'info') => {
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const toast = useCallback((message: string, type: ToastType = 'info', action?: ToastAction) => {
     const id = ++counter;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
+    setToasts((prev) => [...prev, { id, message, type, action }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), action ? 5500 : 3500);
   }, []);
 
   const config: Record<ToastType, { border: string; iconBg: string; iconColor: string; bar: string; Icon: React.ElementType }> = {
@@ -37,7 +48,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ToastContext.Provider value={{ toast }}>
+    <ToastContext.Provider value={{ toast, dismissToast }}>
       {children}
       <div style={{
         position: 'fixed', bottom: '16px', right: '16px', zIndex: 9999,
@@ -45,6 +56,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       }}>
         {toasts.map((t) => {
           const c = config[t.type];
+          const duration = t.action ? 5.5 : 3.5;
           return (
             <div
               key={t.id}
@@ -57,7 +69,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 border: `1px solid ${c.border}`,
                 boxShadow: 'var(--shadow-md)',
                 display: 'flex', alignItems: 'center', gap: '10px',
-                fontSize: '13px', maxWidth: '320px', minWidth: '220px',
+                fontSize: '13px', maxWidth: '340px', minWidth: '220px',
                 pointerEvents: 'auto',
               }}
             >
@@ -72,13 +84,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
               <span style={{ color: 'var(--text)', lineHeight: 1.4, flex: 1 }}>{t.message}</span>
 
+              {t.action && (
+                <button
+                  onClick={() => { t.action!.onClick(); dismissToast(t.id); }}
+                  style={{
+                    padding: '3px 10px', borderRadius: 'var(--r-sm)',
+                    background: 'var(--surface-hover)', border: '1px solid var(--border)',
+                    color: 'var(--text)', fontSize: '11px', fontWeight: 600,
+                    cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t.action.label}
+                </button>
+              )}
+
               <div style={{
                 position: 'absolute', bottom: 0, left: 0,
                 height: '2px',
                 background: c.bar,
                 borderRadius: '0 0 var(--r-md) var(--r-md)',
                 opacity: 0.6,
-                animation: 'toastProgress 3.5s linear forwards',
+                animation: `toastProgress ${duration}s linear forwards`,
               }} />
             </div>
           );

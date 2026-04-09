@@ -3,21 +3,8 @@ import { setupMasterPassword } from '@/lib/tauri';
 import { useAuthStore } from '@/store/authStore';
 import { useTourStore } from '@/store/tourStore';
 import { ZLogo } from '@/components/ui/ZLogo';
+import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
 import { KeyRound, Copy, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react';
-
-function strengthScore(pw: string): number {
-  if (pw.length < 8) return 0;
-  let score = 0;
-  if (pw.length >= 12) score++;
-  if (pw.length >= 16) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-}
-
-const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-const strengthColors = ['', 'var(--red)', 'var(--amber)', 'var(--amber)', 'var(--green)'];
 
 function Screen({ children }: { children: React.ReactNode }) {
   return (
@@ -93,7 +80,6 @@ export function SetupScreen() {
   const setFirstRun = useAuthStore((s) => s.setFirstRun);
   const startTour   = useTourStore((s) => s.start);
 
-  const score    = strengthScore(password);
   const mismatch = confirm && password !== confirm;
 
   async function handleSetup(e: React.FormEvent) {
@@ -200,16 +186,9 @@ export function SetupScreen() {
               {showPw ? <EyeOff size={15} strokeWidth={1.8} /> : <Eye size={15} strokeWidth={1.8} />}
             </button>
           </div>
-          {password && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {[1,2,3,4].map(i => (
-                  <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: score >= i ? strengthColors[score] : 'var(--border)', transition: 'background 200ms' }} />
-                ))}
-              </div>
-              {score > 0 && <p style={{ fontSize: '11px', color: strengthColors[score], marginTop: 4 }}>{strengthLabels[score]}</p>}
-            </div>
-          )}
+          <div style={{ marginTop: 8 }}>
+            <PasswordStrengthMeter password={password} />
+          </div>
         </div>
 
         <div>

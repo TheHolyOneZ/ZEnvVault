@@ -2,28 +2,32 @@ import React, { useState } from 'react';
 import type { Variable } from '@/types';
 import { RevealValue } from './RevealValue';
 import { useUiStore } from '@/store/uiStore';
-import { copyVariableValue, deleteVariable, revealVariable } from '@/lib/tauri';
+import { copyVariableValue, deleteVariable, hardDeleteVariable, restoreVariable, pinVariable, revealVariable } from '@/lib/tauri';
 import { useProjectStore } from '@/store/projectStore';
 import { useToast } from '@/components/ui/Toast';
 import { Badge } from '@/components/ui/Badge';
 import { ContextMenu, type ContextMenuItem } from '@/components/ui/ContextMenu';
-import { Copy, Pencil, Trash2, Check, Terminal, Hash, FileText, Braces } from 'lucide-react';
+import { VALUE_TYPES } from '@/lib/typeValidators';
+import { Copy, Pencil, Trash2, Check, Terminal, Hash, FileText, Braces, Pin, PinOff, GripVertical } from 'lucide-react';
 
 interface VariableRowProps {
   variable: Variable;
   projectColor: string;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-export function VariableRow({ variable, projectColor }: VariableRowProps) {
+export function VariableRow({ variable, projectColor, dragHandleProps }: VariableRowProps) {
   const [hovered, setHovered] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const openModal = useUiStore((s) => s.openModal);
   const toggleSelect = useUiStore((s) => s.toggleSelectVariable);
   const selectedIds = useUiStore((s) => s.selectedVariableIds);
   const removeVariable = useProjectStore((s) => s.removeVariable);
+  const upsertVariable = useProjectStore((s) => s.upsertVariable);
   const { toast } = useToast();
 
   const isSelected = selectedIds.has(variable.id);
+  const typeMeta = variable.value_type ? VALUE_TYPES[variable.value_type] : null;
 
   async function handleCopy(e: React.MouseEvent) {
     e.stopPropagation();
@@ -35,13 +39,41 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
     }
   }
 
+  async function handlePin(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await pinVariable(variable.id, !variable.pinned);
+      upsertVariable({ ...variable, pinned: !variable.pinned });
+    } catch {
+      toast('Failed to pin variable', 'error');
+    }
+  }
+
   async function handleDelete(e?: React.MouseEvent) {
     e?.stopPropagation();
-    if (!confirm(`Delete "${variable.key}"?`)) return;
     try {
       await deleteVariable(variable.id);
       removeVariable(variable.id);
-      toast('Variable deleted', 'info');
+
+      let undone = false;
+      toast(`"${variable.key}" deleted`, 'info', {
+        label: 'Undo',
+        onClick: async () => {
+          undone = true;
+          try {
+            await restoreVariable(variable.id);
+            upsertVariable(variable);
+          } catch {
+            toast('Failed to restore', 'error');
+          }
+        },
+      });
+
+      setTimeout(async () => {
+        if (!undone) {
+          try { await hardDeleteVariable(variable.id); } catch {}
+        }
+      }, 5500);
     } catch {
       toast('Failed to delete', 'error');
     }
@@ -83,6 +115,7 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
   const menuItems: ContextMenuItem[] = [
     { label: 'Copy value',        icon: <Copy size={12} strokeWidth={1.8}/>, action: () => copyVariableValue(variable.id).then(() => toast('Copied', 'success')).catch(() => toast('Failed', 'error')) },
     { label: 'Edit',              icon: <Pencil size={12} strokeWidth={1.8}/>, action: () => openModal('variable', variable.id) },
+    { label: variable.pinned ? 'Unpin' : 'Pin', icon: variable.pinned ? <PinOff size={12} strokeWidth={1.8}/> : <Pin size={12} strokeWidth={1.8}/>, action: () => handlePin({ stopPropagation: () => {} } as React.MouseEvent) },
     { label: '', separator: true, action: () => {} },
     { label: 'Copy as bash export', icon: <Terminal size={12} strokeWidth={1.8}/>, action: () => copyAsSnippet('bash') },
     { label: 'Copy as PowerShell',  icon: <Hash size={12} strokeWidth={1.8}/>,     action: () => copyAsSnippet('powershell') },
@@ -102,7 +135,7 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
         onContextMenu={handleContextMenu}
         style={{
           display: 'grid',
-          gridTemplateColumns: '28px 1fr 1fr 1fr auto',
+          gridTemplateColumns: '44px 1fr 1fr 1fr auto',
           alignItems: 'center', gap: '8px',
           padding: '0 12px', height: 44, cursor: 'pointer',
           background: isSelected ? 'var(--accent-sub)' : hovered ? 'var(--surface-hover)' : 'transparent',
@@ -112,25 +145,51 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
         }}
       >
 
-        <div onClick={(e) => { e.stopPropagation(); toggleSelect(variable.id); }}
-          style={{
-            width: 16, height: 16, borderRadius: 4, border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-            background: isSelected ? 'var(--accent)' : 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', flexShrink: 0,
-            transition: 'all 100ms',
-          }}
-        >{isSelected && <Check size={10} strokeWidth={3} />}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          {dragHandleProps && (
+            <div
+              {...dragHandleProps}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                cursor: 'grab', color: hovered ? 'var(--text-muted)' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 18, height: 30, flexShrink: 0, transition: 'color 80ms',
+              }}
+            >
+              <GripVertical size={15} strokeWidth={1.8} />
+            </div>
+          )}
+          <div onClick={(e) => { e.stopPropagation(); toggleSelect(variable.id); }}
+            style={{
+              width: 16, height: 16, borderRadius: 4, border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+              background: isSelected ? 'var(--accent)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', flexShrink: 0,
+              transition: 'all 100ms',
+            }}
+          >{isSelected && <Check size={10} strokeWidth={3} />}</div>
+        </div>
 
 
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500,
-          color: 'var(--mono-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{variable.key}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+          {variable.pinned && (
+            <Pin size={9} strokeWidth={2.5} style={{ color: 'var(--accent)', flexShrink: 0, opacity: 0.7 }} />
+          )}
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500,
+            color: 'var(--mono-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{variable.key}</span>
+          {typeMeta && (
+            <span style={{
+              fontSize: '9px', fontWeight: 600, padding: '1px 5px', borderRadius: 99,
+              color: typeMeta.color, background: typeMeta.bg, flexShrink: 0, letterSpacing: '0.04em',
+            }}>{typeMeta.label}</span>
+          )}
+        </div>
 
 
         <div onClick={(e) => e.stopPropagation()}>
-          <RevealValue variableId={variable.id} isSecret={variable.is_secret} />
+          <RevealValue variableId={variable.id} isSecret={variable.is_secret} sensitive={variable.sensitive} />
         </div>
 
 
@@ -154,6 +213,12 @@ export function VariableRow({ variable, projectColor }: VariableRowProps) {
               </svg>
             </Badge>
           )}
+          <ActionBtn onClick={handlePin} title={variable.pinned ? 'Unpin' : 'Pin'}>
+            {variable.pinned
+              ? <PinOff size={12} strokeWidth={1.8} />
+              : <Pin size={12} strokeWidth={1.8} />
+            }
+          </ActionBtn>
           <ActionBtn onClick={handleCopy} title="Copy value">
             <Copy size={12} strokeWidth={1.8} />
           </ActionBtn>

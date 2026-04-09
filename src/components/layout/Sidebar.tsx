@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUiStore } from '@/store/uiStore';
-import { listTiers, listVariables, lock, deleteProject } from '@/lib/tauri';
+import { listTiers, listVariables, lock, deleteProject, restoreProject, hardDeleteProject, reorderProjects } from '@/lib/tauri';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import { colorWithAlpha } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { ProjectIcon } from '@/components/ui/ProjectIcon';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, GripVertical } from 'lucide-react';
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { Project, Tier } from '@/types';
 
 export function Sidebar() {
   const [search, setSearch] = useState('');
@@ -21,7 +28,10 @@ export function Sidebar() {
   const setTiers = useProjectStore((s) => s.setTiers);
   const setVariables = useProjectStore((s) => s.setVariables);
   const removeProject = useProjectStore((s) => s.removeProject);
+  const setProjects = useProjectStore((s) => s.setProjects);
   const openModal = useUiStore((s) => s.openModal);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const setLocked = useAuthStore((s) => s.setLocked);
   const clearRevealed = useUiStore((s) => s.clearRevealed);
   const { toast } = useToast();
@@ -55,7 +65,6 @@ export function Sidebar() {
 
   async function handleDeleteProject(e: React.MouseEvent, id: string, name: string) {
     e.stopPropagation();
-    if (!confirm(`Delete project "${name}" and ALL its environments and variables? This cannot be undone.`)) return;
     try {
       await deleteProject(id);
       removeProject(id);
@@ -64,10 +73,42 @@ export function Sidebar() {
         setActiveTier(null);
         setVariables([]);
       }
-      toast(`Project "${name}" deleted`, 'info');
+
+      let undone = false;
+      toast(`"${name}" deleted`, 'info', {
+        label: 'Undo',
+        onClick: async () => {
+          undone = true;
+          try {
+            await restoreProject(id);
+            const { listProjects } = await import('@/lib/tauri');
+            const projects = await listProjects();
+            useProjectStore.getState().setProjects(projects);
+          } catch {
+            toast('Failed to restore project', 'error');
+          }
+        },
+      });
+
+      setTimeout(async () => {
+        if (!undone) {
+          try { await hardDeleteProject(id); } catch {}
+        }
+      }, 5500);
     } catch (err) {
       toast(String(err), 'error');
     }
+  }
+
+  async function handleProjectDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = projects.findIndex((p) => p.id === active.id);
+    const newIndex = projects.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(projects, oldIndex, newIndex).map((p, i) => ({ ...p, sort_order: i }));
+    setProjects(reordered);
+    try { await reorderProjects(reordered.map((p) => p.id)); } catch {}
   }
 
   async function handleLock() {
@@ -119,60 +160,20 @@ export function Sidebar() {
             {projects.length === 0 ? 'No projects yet.\nClick + to create one.' : 'No results'}
           </div>
         )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+        <SortableContext items={projects.map((p) => p.id)} strategy={verticalListSortingStrategy}>
         {filtered.map((project) => {
           const isActive = project.id === activeProjectId;
-          const isHovered = hoveredProjectId === project.id;
           const projectTiers = tiers[project.id] ?? [];
-          const showActions = isHovered || isActive;
           return (
             <div key={project.id}>
-              <div
-                onClick={() => handleSelectProject(project.id)}
-                onMouseEnter={() => setHoveredProjectId(project.id)}
-                onMouseLeave={() => setHoveredProjectId(null)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '7px 8px 7px 12px', cursor: 'pointer',
-                  borderLeft: `3px solid ${isActive ? project.color : 'transparent'}`,
-                  background: isActive ? colorWithAlpha(project.color, 0.06) : isHovered ? 'var(--surface-hover)' : 'transparent',
-                  transition: 'all 80ms',
-                }}
-              >
-                <span style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? project.color : 'var(--text-muted)', flexShrink: 0 }}>
-                  <ProjectIcon name={project.icon || 'Folder'} size={14} strokeWidth={1.8} />
-                </span>
-                <span style={{
-                  flex: 1, fontSize: '13px', fontWeight: isActive ? 500 : 400,
-                  color: isActive ? 'var(--text)' : 'var(--text-dim)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{project.name}</span>
-
-                <button
-                  onClick={(e) => { e.stopPropagation(); openModal('project', project.id); }}
-                  title="Edit project"
-                  style={{
-                    width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--text-muted)', opacity: showActions ? 1 : 0,
-                    transition: 'opacity 80ms, color 80ms',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-                ><Pencil size={11} strokeWidth={1.8} /></button>
-
-                <button
-                  onClick={(e) => handleDeleteProject(e, project.id, project.name)}
-                  title="Delete project"
-                  style={{
-                    width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--text-muted)', opacity: showActions ? 1 : 0,
-                    transition: 'opacity 80ms, color 80ms',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-                ><Trash2 size={11} strokeWidth={1.8} /></button>
-              </div>
+              <SortableProjectItem
+                project={project}
+                isActive={isActive}
+                onSelect={() => handleSelectProject(project.id)}
+                onEdit={() => openModal('project', project.id)}
+                onDelete={(e) => handleDeleteProject(e, project.id, project.name)}
+              />
 
 
               {isActive && projectTiers.map((tier) => {
@@ -202,6 +203,8 @@ export function Sidebar() {
             </div>
           );
         })}
+        </SortableContext>
+        </DndContext>
       </div>
 
 
@@ -224,6 +227,90 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function SortableProjectItem({ project, isActive, onSelect, onEdit, onDelete }: {
+  project: Project;
+  isActive: boolean;
+  onSelect: () => void;
+  onEdit: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id });
+  const showActions = hovered || isActive;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div
+        onClick={onSelect}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '7px 8px 7px 4px', cursor: 'pointer',
+          borderLeft: `3px solid ${isActive ? project.color : 'transparent'}`,
+          background: isActive ? colorWithAlpha(project.color, 0.06) : hovered ? 'var(--surface-hover)' : 'transparent',
+          transition: 'all 80ms',
+        }}
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            cursor: 'grab', color: hovered ? 'var(--text-muted)' : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 18, height: 28, flexShrink: 0, transition: 'color 80ms',
+          }}
+        >
+          <GripVertical size={14} strokeWidth={1.8} />
+        </div>
+
+        <span style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? project.color : 'var(--text-muted)', flexShrink: 0 }}>
+          <ProjectIcon name={project.icon || 'Folder'} size={14} strokeWidth={1.8} />
+        </span>
+        <span style={{
+          flex: 1, fontSize: '13px', fontWeight: isActive ? 500 : 400,
+          color: isActive ? 'var(--text)' : 'var(--text-dim)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{project.name}</span>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          title="Edit project"
+          style={{
+            width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-muted)', opacity: showActions ? 1 : 0,
+            transition: 'opacity 80ms, color 80ms',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+        ><Pencil size={11} strokeWidth={1.8} /></button>
+
+        <button
+          onClick={onDelete}
+          title="Delete project"
+          style={{
+            width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-muted)', opacity: showActions ? 1 : 0,
+            transition: 'opacity 80ms, color 80ms',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+        ><Trash2 size={11} strokeWidth={1.8} /></button>
+      </div>
+    </div>
   );
 }
 

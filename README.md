@@ -27,9 +27,12 @@ Built with Tauri v2 + Rust backend, React 18 frontend.
 
 **[→ Pre-built download at zsync.eu/zvault/](https://zsync.eu/zvault/)**
 
-Also available as MSI installer and portable `.exe`.
-
-Requires Windows 10/11 x64.
+| Platform | Format | Notes |
+|----------|--------|-------|
+| Windows 10/11 x64 | NSIS `.exe` (recommended) | No admin required |
+| Windows 10/11 x64 | MSI | Group policy / enterprise |
+| Ubuntu / Debian amd64 | `.deb` | Requires `libwebkit2gtk-4.1` |
+| Any Linux x64 | `.AppImage` | Self-contained, no install needed |
 
 ---
 
@@ -116,7 +119,7 @@ Requires Windows 10/11 x64.
 |-----------|--------|--------|
 | Encryption | AES-256-GCM | Authenticated encryption; each value gets a unique 96-bit nonce |
 | Key derivation | Argon2id | Memory-hard; winner of Password Hashing Competition |
-| KDF parameters | 64 MB memory, 5 iterations, 4 threads | OWASP-recommended minimum for Argon2id (upgraded from 3 in v0.3.0) |
+| KDF parameters | 64 MB memory, 5 iterations, 4 threads | OWASP-recommended minimum for Argon2id (upgraded from 3 in v0.4.0) |
 | KDF params stored per-vault | `argon2_t_cost` in DB | Allows future upgrades without breaking existing vaults |
 | Key storage | `Zeroizing<[u8;32]>` (zeroize crate) | Zeroed on drop, never serialized |
 | Plaintext intermediates | `Zeroizing<String>` during re-encryption | Secret values overwritten in RAM immediately after use |
@@ -149,8 +152,16 @@ npm run tauri build
 ```
 
 Output: `src-tauri/target/release/bundle/`
-- `nsis/ZVault_0.3.0_x64-setup.exe` — NSIS installer
-- `msi/ZVault_0.3.0_x64_en-US.msi` — MSI installer
+- `nsis/ZVault_0.4.0_x64-setup.exe` — NSIS installer (Windows)
+- `msi/ZVault_0.4.0_x64_en-US.msi` — MSI installer (Windows)
+- `deb/ZVault_0.4.0_amd64.deb` — Debian package (Linux, build on Ubuntu/Debian)
+
+**Linux build** — requires additional system dependencies:
+```bash
+sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev \
+  libayatana-appindicator3-dev librsvg2-dev build-essential libxdo-dev pkg-config
+npm run tauri build -- --bundles deb
+```
 
 ---
 
@@ -190,9 +201,10 @@ Output: `src-tauri/target/release/bundle/`
 
 ## Data location
 
-```
-%APPDATA%\ZVault\zvault.db
-```
+| Platform | Path |
+|----------|------|
+| Windows | `%APPDATA%\ZVault\zvault.db` |
+| Linux | `~/.local/share/ZVault/zvault.db` |
 
 Single encrypted SQLite file. Back it up like any other file.
 

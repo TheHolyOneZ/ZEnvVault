@@ -96,7 +96,7 @@ export function StatusBar() {
           </span>
         )}
 
-        <span>ZVault v0.3.0</span>
+        <span>ZVault v0.4.0</span>
       </div>
     </div>
   );

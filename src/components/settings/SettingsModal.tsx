@@ -6,16 +6,19 @@ import { Button } from '@/components/ui/Button';
 import { ZLogo } from '@/components/ui/ZLogo';
 import { useUiStore } from '@/store/uiStore';
 import { useConfigStore } from '@/store/configStore';
-import { getConfig, updateConfig, changeMasterPassword, getDbPath, getAuditLog } from '@/lib/tauri';
+import { getConfig, updateConfig, changeMasterPassword, getDbPath, getAuditLog, backupVault } from '@/lib/tauri';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useToast } from '@/components/ui/Toast';
 import type { AuditEntry } from '@/types';
 import {
   ShieldCheck, Database, ClipboardList, Info, Keyboard,
   Lock, KeyRound, Folder, RefreshCw, ScrollText, Key,
-  Copy, Check, Eye, Plus, Trash2, Download, Upload, Unlock, Pencil,
+  Copy, Check, Eye, Plus, Trash2, Download, Upload, Unlock, Pencil, Sun, Moon,
+  HardDrive,
 } from 'lucide-react';
+import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
 
-type Section = 'security' | 'data' | 'audit' | 'shortcuts' | 'about';
+type Section = 'security' | 'data' | 'backup' | 'audit' | 'shortcuts' | 'about';
 
 const ACTION_META: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   create_variable:  { label: 'Created',          color: 'var(--green)',      bg: 'var(--green-sub)',    Icon: Plus      },
@@ -172,6 +175,7 @@ export function SettingsModal() {
   const sections: { id: Section; label: string; Icon: React.ElementType }[] = [
     { id: 'security',  label: 'Security',   Icon: ShieldCheck  },
     { id: 'data',      label: 'Data',       Icon: Database     },
+    { id: 'backup',    label: 'Backup',     Icon: HardDrive    },
     { id: 'audit',     label: 'Audit log',  Icon: ClipboardList },
     { id: 'shortcuts', label: 'Shortcuts',  Icon: Keyboard     },
     { id: 'about',     label: 'About',      Icon: Info         },
@@ -251,6 +255,36 @@ export function SettingsModal() {
                 </div>
               </div>
 
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p className="label-section">Appearance</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-dim)', flex: 1 }}>Theme</span>
+                  <div style={{ display: 'flex', borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    {(['dark', 'light'] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setLocalConfig({ ...localConfig, theme: t })}
+                        style={{
+                          padding: '5px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: 5,
+                          background: localConfig.theme === t ? 'var(--surface-hover)' : 'transparent',
+                          color: localConfig.theme === t ? 'var(--text)' : 'var(--text-muted)',
+                          borderRight: t === 'dark' ? '1px solid var(--border)' : 'none',
+                          transition: 'all 100ms', cursor: 'pointer',
+                        }}
+                      >
+                        {t === 'dark' ? <Moon size={11} strokeWidth={1.8} /> : <Sun size={11} strokeWidth={1.8} />}
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Toggle
+                  checked={localConfig.minimize_to_tray}
+                  onChange={(v) => setLocalConfig({ ...localConfig, minimize_to_tray: v })}
+                  label="Minimize to tray on close"
+                />
+              </div>
+
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <p className="label-section">Change master password</p>
                 {newRecoveryCode ? (
@@ -284,6 +318,7 @@ export function SettingsModal() {
                   <>
                     <Input type="password" label="Current password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} />
                     <Input type="password" label="New password (min. 12 chars)" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+                    <PasswordStrengthMeter password={newPw} />
                     <Input type="password" label="Confirm new password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} />
                     <Button variant="ghost" onClick={handleChangePassword} loading={changingPw}>Change password</Button>
                   </>
@@ -320,6 +355,14 @@ export function SettingsModal() {
                 </p>
               </div>
             </div>
+          )}
+
+
+          {section === 'backup' && (
+            <BackupSection
+              localConfig={localConfig}
+              setLocalConfig={setLocalConfig}
+            />
           )}
 
 
@@ -452,7 +495,7 @@ export function SettingsModal() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                     <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.02em' }}>ZVault</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>v0.3.0</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>v0.4.0</span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>by TheHolyOneZ</p>
                 </div>
@@ -594,5 +637,98 @@ export function SettingsModal() {
         </div>
       )}
     </Modal>
+  );
+}
+
+function BackupSection({ localConfig, setLocalConfig }: {
+  localConfig: import('@/types').AppConfig;
+  setLocalConfig: (c: import('@/types').AppConfig) => void;
+}) {
+  const { toast } = useToast();
+  const [backing, setBacking] = React.useState(false);
+
+  async function pickFolder() {
+    const folder = await open({ directory: true, multiple: false });
+    if (typeof folder === 'string') {
+      setLocalConfig({ ...localConfig, backup_folder: folder });
+    }
+  }
+
+  async function handleBackupNow() {
+    setBacking(true);
+    try {
+      const path = await backupVault();
+      toast(`Backup saved: ${path}`, 'success');
+    } catch (err) {
+      toast(String(err), 'error');
+    } finally {
+      setBacking(false);
+    }
+  }
+
+  return (
+    <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <p className="label-section">Automatic backup</p>
+
+      <Toggle
+        checked={localConfig.backup_enabled}
+        onChange={(v) => setLocalConfig({ ...localConfig, backup_enabled: v })}
+        label="Enable automatic backups"
+      />
+
+      {localConfig.backup_enabled && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-dim)', flex: 1 }}>Backup every</span>
+            <select
+              value={localConfig.backup_interval_days}
+              onChange={(e) => setLocalConfig({ ...localConfig, backup_interval_days: Number(e.target.value) })}
+              style={{ padding: '5px 8px', background: 'var(--surface-input)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: '12px', color: 'var(--text-dim)' }}
+            >
+              <option value={1}>1 day</option>
+              <option value={3}>3 days</option>
+              <option value={7}>7 days</option>
+              <option value={14}>14 days</option>
+              <option value={30}>30 days</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-dim)' }}>Backup folder</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <code style={{
+                flex: 1, padding: '6px 10px', borderRadius: 'var(--r-md)',
+                background: 'var(--surface-hover)', fontSize: '11px', color: 'var(--text-dim)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {localConfig.backup_folder || 'Not set'}
+              </code>
+              <Button size="sm" variant="ghost" onClick={pickFolder} icon={<Folder size={12} strokeWidth={1.8} />}>
+                Browse
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+        <p className="label-section" style={{ marginBottom: 10 }}>Manual backup</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+          Creates a timestamped copy of the encrypted database in the backup folder. The backup is safe to store — values remain encrypted.
+        </p>
+        <Button
+          variant="ghost"
+          onClick={handleBackupNow}
+          loading={backing}
+          disabled={!localConfig.backup_folder}
+          icon={<HardDrive size={13} strokeWidth={1.8} />}
+        >
+          Back up now
+        </Button>
+        {!localConfig.backup_folder && (
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 6 }}>Set a backup folder first</p>
+        )}
+      </div>
+    </div>
   );
 }

@@ -66,3 +66,26 @@
   --titlebar-h: 40px;
   --statusbar-h: 28px;
 }
+
+body.light {
+  --bg:             #F5F5F7;
+  --surface:        #FFFFFF;
+  --surface-up:     #FAFAFA;
+  --surface-hover:  #EFEFEF;
+  --surface-input:  #F0F0F2;
+
+  --border:         #D8D8DC;
+  --border-strong:  #B8B8BE;
+  --border-focus:   #7C6AF7;
+
+  --text:           #111113;
+  --text-dim:       #55555C;
+  --text-muted:     #909096;
+  --text-on-accent: #FFFFFF;
+
+  --mono-text:      #4B3FA8;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+}

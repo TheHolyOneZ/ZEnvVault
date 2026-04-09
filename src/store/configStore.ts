@@ -12,6 +12,11 @@ const DEFAULT_CONFIG: AppConfig = {
   audit_enabled: true,
   clipboard_clear_seconds: 30,
   show_lock_countdown: true,
+  theme: 'dark',
+  minimize_to_tray: false,
+  backup_enabled: false,
+  backup_interval_days: 7,
+  backup_folder: null,
 };
 
 export const useConfigStore = create<ConfigState>((set) => ({

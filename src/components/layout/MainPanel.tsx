@@ -296,6 +296,7 @@ export function MainPanel() {
               Link .env
             </button>
           )}
+          <Button size="sm" variant="ghost" onClick={() => openModal('clone-env')}>Clone</Button>
           <Button size="sm" variant="ghost" onClick={() => openModal('import')}>Import</Button>
           <Button size="sm" variant="ghost" onClick={() => openModal('export')}>Export</Button>
           <Button size="sm" variant="ghost" onClick={() => openModal('diff')}>Diff</Button>

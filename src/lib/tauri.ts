@@ -23,6 +23,8 @@ export const createProject = (name: string, description?: string, color?: string
 export const updateProject = (id: string, name: string, description: string | undefined, color: string, icon?: string) =>
   invoke<Project>('update_project', { id, name, description, color, icon });
 export const deleteProject = (id: string) => invoke<void>('delete_project', { id });
+export const restoreProject = (id: string) => invoke<void>('restore_project', { id });
+export const hardDeleteProject = (id: string) => invoke<void>('hard_delete_project', { id });
 export const reorderProjects = (ids: string[]) => invoke<void>('reorder_projects', { ids });
 
 export const listTiers = (projectId: string) => invoke<Tier[]>('list_tiers', { projectId });
@@ -43,11 +45,19 @@ export const syncTierToFile = (tierId: string) =>
 export const listVariables = (tierId: string) => invoke<Variable[]>('list_variables', { tierId });
 export const revealVariable = (id: string) => invoke<string>('reveal_variable', { id });
 export const revealAllVariables = (tierId: string) => invoke<Record<string, string>>('reveal_all_variables', { tierId });
-export const createVariable = (tierId: string, key: string, value: string, description: string | undefined, isSecret: boolean) =>
-  invoke<Variable>('create_variable', { tierId, key, value, description, isSecret });
-export const updateVariable = (id: string, key: string, value: string, description: string | undefined, isSecret: boolean) =>
-  invoke<Variable>('update_variable', { id, key, value, description, isSecret });
+export const createVariable = (
+  tierId: string, key: string, value: string, description: string | undefined, isSecret: boolean,
+  sensitive?: boolean, groupName?: string, valueType?: string,
+) => invoke<Variable>('create_variable', { tierId, key, value, description, isSecret, sensitive, groupName, valueType });
+export const updateVariable = (
+  id: string, key: string, value: string | null, description: string | undefined, isSecret: boolean,
+  sensitive?: boolean, groupName?: string, valueType?: string,
+) => invoke<Variable>('update_variable', { id, key, value, description, isSecret, sensitive, groupName, valueType });
 export const deleteVariable = (id: string) => invoke<void>('delete_variable', { id });
+export const restoreVariable = (id: string) => invoke<void>('restore_variable', { id });
+export const hardDeleteVariable = (id: string) => invoke<void>('hard_delete_variable', { id });
+export const pinVariable = (id: string, pinned: boolean) => invoke<void>('pin_variable', { id, pinned });
+export const revealSensitiveVariable = (id: string, password: string) => invoke<string>('reveal_sensitive_variable', { id, password });
 export const reorderVariables = (ids: string[]) => invoke<void>('reorder_variables', { ids });
 export const getVariableHistory = (variableId: string) => invoke<VariableHistory[]>('get_variable_history', { variableId });
 export const revealHistoryValue = (historyId: number) => invoke<string>('reveal_history_value', { historyId });
@@ -64,6 +74,8 @@ export const importEnvFile = (path: string, tierId: string, strategy: MergeStrat
   invoke<ImportResult>('import_env_file', { path, tierId, strategy });
 export const exportEnvFile = (tierId: string, path: string) =>
   invoke<void>('export_env_file', { tierId, path });
+export const exportAsFormat = (tierId: string, path: string, format: string) =>
+  invoke<void>('export_as_format', { tierId, path, format });
 
 export const searchVariables = (query: string) => invoke<SearchResult[]>('search_variables', { query });
 
@@ -71,3 +83,4 @@ export const getConfig = () => invoke<AppConfig>('get_config');
 export const updateConfig = (config: AppConfig) => invoke<void>('update_config', { config });
 export const getAuditLog = (limit: number, offset: number) => invoke<AuditEntry[]>('get_audit_log', { limit, offset });
 export const getDbPath = () => invoke<string>('get_db_path');
+export const backupVault = () => invoke<string>('backup_vault');

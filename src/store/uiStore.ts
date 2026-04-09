@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Modal = 'project' | 'tier' | 'variable' | 'import' | 'export' | 'diff' | 'settings' | 'command-palette' | null;
+type Modal = 'project' | 'tier' | 'variable' | 'import' | 'export' | 'diff' | 'settings' | 'command-palette' | 'clone-env' | null;
 
 interface UiState {
   modal: Modal;

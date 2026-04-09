@@ -7,6 +7,7 @@ export interface Project {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface Tier {
@@ -27,6 +28,10 @@ export interface Variable {
   key: string;
   description?: string;
   is_secret: boolean;
+  pinned: boolean;
+  sensitive: boolean;
+  group_name?: string | null;
+  value_type?: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -45,6 +50,11 @@ export interface AppConfig {
   audit_enabled: boolean;
   clipboard_clear_seconds: number;
   show_lock_countdown: boolean;
+  theme: 'dark' | 'light';
+  minimize_to_tray: boolean;
+  backup_enabled: boolean;
+  backup_interval_days: number;
+  backup_folder?: string | null;
 }
 
 export interface SearchResult {

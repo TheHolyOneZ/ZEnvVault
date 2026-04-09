@@ -21,11 +21,13 @@ import { ExportDialog } from '@/components/import-export/ExportDialog';
 import { TierDiffView } from '@/components/diff/TierDiffView';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { CommandPalette } from '@/components/search/CommandPalette';
+import { CloneEnvModal } from '@/components/variables/CloneEnvModal';
 
 export default function App() {
   const { isLocked: locked, isFirstRun: firstRun, setLocked, setFirstRun } = useAuthStore();
   const setProjects = useProjectStore((s) => s.setProjects);
   const setConfig = useConfigStore((s) => s.setConfig);
+  const theme = useConfigStore((s) => s.config.theme);
   const openModal = useUiStore((s) => s.openModal);
   const clearRevealed = useUiStore((s) => s.clearRevealed);
   const initialized = useRef(false);
@@ -58,6 +60,10 @@ export default function App() {
     })();
   }, [locked, firstRun]);
 
+
+  useEffect(() => {
+    document.body.classList.toggle('light', theme === 'light');
+  }, [theme]);
 
   useEffect(() => {
     const unlisten = listen('vault-locked', () => {
@@ -155,6 +161,7 @@ export default function App() {
       <TierDiffView />
       <SettingsModal />
       <CommandPalette />
+      <CloneEnvModal />
 
 
       <TourOverlay />
