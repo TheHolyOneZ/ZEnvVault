@@ -38,6 +38,7 @@ pub async fn create_project(
         sort_order: 0,
         created_at: now.clone(),
         updated_at: now,
+        deleted_at: None,
     };
     queries::create_project(&state.db, &p).await?;
     queries::add_audit(&state.db, "create", "project", &p.id, Some(&p.name)).await?;
@@ -57,7 +58,7 @@ pub async fn update_project(
     state.touch().await;
 
     let now = now();
-    let p = Project { id, name, description, color, icon, sort_order: 0, created_at: now.clone(), updated_at: now };
+    let p = Project { id, name, description, color, icon, sort_order: 0, created_at: now.clone(), updated_at: now, deleted_at: None };
     queries::update_project(&state.db, &p).await?;
     queries::add_audit(&state.db, "update", "project", &p.id, Some(&p.name)).await?;
     Ok(p)
@@ -67,8 +68,22 @@ pub async fn update_project(
 pub async fn delete_project(id: String, state: State<'_, Arc<AppState>>) -> Result<()> {
     if state.is_locked().await { return Err(AppError::Locked); }
     state.touch().await;
-    queries::add_audit(&state.db, "delete", "project", &id, None).await?;
-    queries::delete_project(&state.db, &id).await
+    queries::add_audit(&state.db, "delete_project", "project", &id, None).await?;
+    queries::soft_delete_project(&state.db, &id, &now()).await
+}
+
+#[tauri::command]
+pub async fn restore_project(id: String, state: State<'_, Arc<AppState>>) -> Result<()> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    state.touch().await;
+    queries::restore_project(&state.db, &id).await
+}
+
+#[tauri::command]
+pub async fn hard_delete_project(id: String, state: State<'_, Arc<AppState>>) -> Result<()> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    state.touch().await;
+    queries::hard_delete_project(&state.db, &id).await
 }
 
 #[tauri::command]

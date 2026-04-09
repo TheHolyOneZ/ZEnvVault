@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod backup;
 pub mod clipboard;
 pub mod config;
 pub mod import_export;

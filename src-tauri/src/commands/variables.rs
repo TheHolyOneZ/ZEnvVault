@@ -95,6 +95,9 @@ pub async fn create_variable(
     value: String,
     description: Option<String>,
     is_secret: bool,
+    sensitive: Option<bool>,
+    group_name: Option<String>,
+    value_type: Option<String>,
     state: State<'_, Arc<AppState>>,
 ) -> Result<Variable> {
     if state.is_locked().await { return Err(AppError::Locked); }
@@ -103,19 +106,21 @@ pub async fn create_variable(
     let dek = state.get_dek_bytes().await.ok_or(AppError::Locked)?;
     let value_enc = aes_gcm::encrypt_str(&dek, &value)?;
     let now = now();
+    let sensitive = sensitive.unwrap_or(false);
 
     let raw = VariableRaw {
         id: random::new_id(), tier_id: tier_id.clone(), key: key.clone(),
-        value_enc, description: description.clone(), is_secret, sort_order: 0,
-        created_at: now.clone(), updated_at: now.clone(),
+        value_enc, description: description.clone(), is_secret,
+        pinned: false, sensitive, group_name: group_name.clone(), value_type: value_type.clone(),
+        sort_order: 0, created_at: now.clone(), updated_at: now.clone(),
     };
     queries::create_variable(&state.db, &raw).await?;
-    queries::add_audit(&state.db, "create", "variable", &raw.id, Some(&key)).await?;
+    queries::add_audit(&state.db, "create_variable", "variable", &raw.id, Some(&key)).await?;
     maybe_auto_sync(&state, &tier_id).await;
 
     Ok(Variable {
-        id: raw.id, tier_id, key, description, is_secret, sort_order: 0,
-        created_at: now.clone(), updated_at: now,
+        id: raw.id, tier_id, key, description, is_secret, pinned: false, sensitive,
+        group_name, value_type, sort_order: 0, created_at: now.clone(), updated_at: now,
     })
 }
 
@@ -123,16 +128,18 @@ pub async fn create_variable(
 pub async fn update_variable(
     id: String,
     key: String,
-    value: String,
+    value: Option<String>,
     description: Option<String>,
     is_secret: bool,
+    sensitive: Option<bool>,
+    group_name: Option<String>,
+    value_type: Option<String>,
     state: State<'_, Arc<AppState>>,
 ) -> Result<Variable> {
     if state.is_locked().await { return Err(AppError::Locked); }
     state.touch().await;
 
-    let dek = state.get_dek_bytes().await.ok_or(AppError::Locked)?;
-    let value_enc = aes_gcm::encrypt_str(&dek, &value)?;
+    let sensitive = sensitive.unwrap_or(false);
     let now = now();
 
     use sqlx::Row;
@@ -142,23 +149,42 @@ pub async fn update_variable(
         .map(|r: sqlx::sqlite::SqliteRow| r.get("tier_id"))
         .ok_or(AppError::NotFound)?;
 
+    let pinned: bool = sqlx::query("SELECT pinned FROM variables WHERE id=?")
+        .bind(&id).fetch_optional(&state.db).await?
+        .map(|r: sqlx::sqlite::SqliteRow| r.get::<i64, _>("pinned") != 0)
+        .unwrap_or(false);
+
+    // If value is None (sensitive variable, user didn't change it), reuse existing value_enc
+    let value_enc = match value {
+        Some(ref v) => {
+            let dek = state.get_dek_bytes().await.ok_or(AppError::Locked)?;
+            aes_gcm::encrypt_str(&dek, v)?
+        }
+        None => {
+            sqlx::query("SELECT value_enc FROM variables WHERE id=?")
+                .bind(&id).fetch_optional(&state.db).await?
+                .map(|r: sqlx::sqlite::SqliteRow| r.get::<String, _>("value_enc"))
+                .ok_or(AppError::NotFound)?
+        }
+    };
+
     let raw = VariableRaw {
         id: id.clone(), tier_id: tier_id.clone(), key: key.clone(),
-        value_enc, description: description.clone(), is_secret, sort_order: 0,
-        created_at: now.clone(), updated_at: now.clone(),
+        value_enc, description: description.clone(), is_secret, pinned, sensitive,
+        group_name: group_name.clone(), value_type: value_type.clone(),
+        sort_order: 0, created_at: now.clone(), updated_at: now.clone(),
     };
     queries::update_variable(&state.db, &raw).await?;
-    queries::add_audit(&state.db, "update", "variable", &id, Some(&key)).await?;
+    queries::add_audit(&state.db, "update_variable", "variable", &id, Some(&key)).await?;
     maybe_auto_sync(&state, &tier_id).await;
-
 
     let sort_order: i64 = sqlx::query("SELECT sort_order FROM variables WHERE id=?")
         .bind(&id).fetch_optional(&state.db).await?
         .map(|r: sqlx::sqlite::SqliteRow| r.get("sort_order")).unwrap_or(0);
 
     Ok(Variable {
-        id, tier_id, key, description, is_secret, sort_order,
-        created_at: now.clone(), updated_at: now,
+        id, tier_id, key, description, is_secret, pinned, sensitive,
+        group_name, value_type, sort_order, created_at: now.clone(), updated_at: now,
     })
 }
 
@@ -176,10 +202,61 @@ pub async fn delete_variable(id: String, state: State<'_, Arc<AppState>>) -> Res
         .map(|r: sqlx::sqlite::SqliteRow| r.get("tier_id"))
         .unwrap_or_default();
 
-    queries::add_audit(&state.db, "delete", "variable", &id, Some(&key)).await?;
-    queries::delete_variable(&state.db, &id).await?;
+    queries::add_audit(&state.db, "delete_variable", "variable", &id, Some(&key)).await?;
+    queries::soft_delete_variable(&state.db, &id, &now()).await?;
     if !tier_id.is_empty() { maybe_auto_sync(&state, &tier_id).await; }
     Ok(())
+}
+
+#[tauri::command]
+pub async fn restore_variable(id: String, state: State<'_, Arc<AppState>>) -> Result<()> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    state.touch().await;
+    queries::restore_variable(&state.db, &id).await
+}
+
+#[tauri::command]
+pub async fn hard_delete_variable(id: String, state: State<'_, Arc<AppState>>) -> Result<()> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    state.touch().await;
+    queries::hard_delete_variable(&state.db, &id).await
+}
+
+#[tauri::command]
+pub async fn pin_variable(id: String, pinned: bool, state: State<'_, Arc<AppState>>) -> Result<()> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    state.touch().await;
+    queries::pin_variable(&state.db, &id, pinned, &now()).await
+}
+
+#[tauri::command]
+pub async fn reveal_sensitive_variable(id: String, password: String, state: State<'_, Arc<AppState>>) -> Result<String> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    use sqlx::Row;
+    let row = sqlx::query("SELECT sensitive FROM variables WHERE id=?")
+        .bind(&id).fetch_optional(&state.db).await?
+        .ok_or(AppError::NotFound)?;
+    let is_sensitive: bool = row.get::<i64, _>("sensitive") != 0;
+    if !is_sensitive { return Err(AppError::Forbidden); }
+
+    let salt = crate::db::queries::get_config_value(&state.db, "argon2_salt").await
+        .ok_or(AppError::AuthFailed)?;
+    let verify_blob = crate::db::queries::get_config_value(&state.db, "verify_blob").await
+        .ok_or(AppError::AuthFailed)?;
+    let t_cost: u32 = crate::db::queries::get_config_value(&state.db, "argon2_t_cost").await
+        .and_then(|v| v.parse().ok()).unwrap_or(3);
+
+    let wrapping_key = crate::crypto::argon2::derive_key(&password, &salt, t_cost)?;
+    if !aes_gcm::verify_key(&wrapping_key, &verify_blob) {
+        return Err(AppError::InvalidPassword);
+    }
+
+    state.touch().await;
+    let dek = state.get_dek_bytes().await.ok_or(AppError::Locked)?;
+    let enc = queries::get_variable_enc(&state.db, &id).await?;
+    let value = aes_gcm::decrypt_str(&dek, &enc)?;
+    queries::add_audit(&state.db, "reveal_variable", "variable", &id, None).await?;
+    Ok(value)
 }
 
 #[tauri::command]

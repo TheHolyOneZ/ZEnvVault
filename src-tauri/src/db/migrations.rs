@@ -72,5 +72,19 @@ pub async fn run(pool: &SqlitePool) -> Result<()> {
     let _ = sqlx::query("ALTER TABLE tiers ADD COLUMN source_path TEXT").execute(pool).await;
     let _ = sqlx::query("ALTER TABLE tiers ADD COLUMN auto_sync INTEGER NOT NULL DEFAULT 0").execute(pool).await;
 
+    let _ = sqlx::query("ALTER TABLE variables ADD COLUMN group_name TEXT").execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE variables ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0").execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE variables ADD COLUMN sensitive INTEGER NOT NULL DEFAULT 0").execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE variables ADD COLUMN deleted_at TEXT").execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE variables ADD COLUMN value_type TEXT").execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE projects ADD COLUMN deleted_at TEXT").execute(pool).await;
+
+    let _ = sqlx::query(
+        "DELETE FROM variables WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now', '-1 hour')"
+    ).execute(pool).await;
+    let _ = sqlx::query(
+        "DELETE FROM projects WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now', '-1 hour')"
+    ).execute(pool).await;
+
     Ok(())
 }

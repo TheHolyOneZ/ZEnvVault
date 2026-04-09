@@ -25,6 +25,10 @@ pub enum AppError {
     Io(String),
     #[error("Invalid input: {0}")]
     InvalidInput(String),
+    #[error("Forbidden")]
+    Forbidden,
+    #[error("Authentication failed")]
+    AuthFailed,
 }
 
 impl From<sqlx::Error> for AppError {

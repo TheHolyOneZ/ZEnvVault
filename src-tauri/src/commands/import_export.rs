@@ -91,6 +91,7 @@ pub async fn import_env_file(
                         id, tier_id: tier_id.clone(), key: pv.key.clone(),
                         value_enc, description: pv.description.clone(), is_secret: auto_secret,
                         sort_order: i as i64, created_at: now.clone(), updated_at: now.clone(),
+                        pinned: false, sensitive: false, group_name: None, value_type: None,
                     };
                     queries::update_variable(&state.db, &raw).await?;
                     updated += 1;
@@ -102,6 +103,7 @@ pub async fn import_env_file(
                 id: random::new_id(), tier_id: tier_id.clone(), key: pv.key.clone(),
                 value_enc, description: pv.description.clone(), is_secret: auto_secret,
                 sort_order: i as i64, created_at: now.clone(), updated_at: now.clone(),
+                pinned: false, sensitive: false, group_name: None, value_type: None,
             };
             queries::create_variable(&state.db, &raw).await?;
             added += 1;
@@ -149,6 +151,82 @@ pub async fn export_env_file(
     let content = env_parser::generate_env_file(&pairs, &project_name, &tier_name);
     std::fs::write(&path, content)?;
 
-    queries::add_audit(&state.db, "export", "tier", &tier_id, Some(&path)).await?;
+    queries::add_audit(&state.db, "export_env", "tier", &tier_id, Some(&path)).await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn export_as_format(
+    tier_id: String,
+    path: String,
+    format: String,
+    state: State<'_, Arc<AppState>>,
+) -> Result<()> {
+    if state.is_locked().await { return Err(AppError::Locked); }
+    state.touch().await;
+
+    let dek = state.get_dek_bytes().await.ok_or(AppError::Locked)?;
+
+    use sqlx::Row;
+    let var_rows = sqlx::query(
+        "SELECT key, value_enc, description FROM variables WHERE tier_id=? AND deleted_at IS NULL ORDER BY sort_order, key"
+    )
+    .bind(&tier_id).fetch_all(&state.db).await?;
+
+    let mut pairs: Vec<(String, String, Option<String>)> = Vec::new();
+    for r in var_rows {
+        let key: String = r.get("key");
+        let value_enc: String = r.get("value_enc");
+        let description: Option<String> = r.get("description");
+        let value = aes_gcm::decrypt_str(&dek, &value_enc)?;
+        pairs.push((key, value, description));
+    }
+
+    let content = match format.as_str() {
+        "json" => {
+            let mut obj = serde_json::Map::new();
+            for (k, v, _) in &pairs {
+                obj.insert(k.clone(), serde_json::Value::String(v.clone()));
+            }
+            serde_json::to_string_pretty(&serde_json::Value::Object(obj))
+                .map_err(|e| AppError::InvalidInput(e.to_string()))?
+        }
+        "yaml" => {
+            let mut out = String::new();
+            for (k, v, desc) in &pairs {
+                if let Some(d) = desc {
+                    if !d.is_empty() {
+                        out.push_str(&format!("# {}\n", d));
+                    }
+                }
+                let needs_quotes = v.contains(':') || v.contains('#') || v.contains('\n') || v.is_empty();
+                if needs_quotes {
+                    out.push_str(&format!("{}: \"{}\"\n", k, v.replace('"', "\\\"")));
+                } else {
+                    out.push_str(&format!("{}: {}\n", k, v));
+                }
+            }
+            out
+        }
+        "docker" => {
+            let mut out = String::new();
+            for (k, v, _) in &pairs {
+                out.push_str(&format!("{}={}\n", k, v));
+            }
+            out
+        }
+        _ => {
+            let tier_info = sqlx::query(
+                "SELECT t.name as tier_name, p.name as project_name FROM tiers t JOIN projects p ON p.id = t.project_id WHERE t.id=?"
+            )
+            .bind(&tier_id).fetch_optional(&state.db).await?.ok_or(AppError::NotFound)?;
+            let tier_name: String = tier_info.get("tier_name");
+            let project_name: String = tier_info.get("project_name");
+            env_parser::generate_env_file(&pairs, &project_name, &tier_name)
+        }
+    };
+
+    std::fs::write(&path, content)?;
+    queries::add_audit(&state.db, "export_env", "tier", &tier_id, Some(&path)).await?;
     Ok(())
 }

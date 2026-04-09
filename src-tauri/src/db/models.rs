@@ -10,6 +10,7 @@ pub struct Project {
     pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
+    pub deleted_at: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -32,6 +33,10 @@ pub struct Variable {
     pub key: String,
     pub description: Option<String>,
     pub is_secret: bool,
+    pub pinned: bool,
+    pub sensitive: bool,
+    pub group_name: Option<String>,
+    pub value_type: Option<String>,
     pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
@@ -75,6 +80,11 @@ pub struct AppConfig {
     pub audit_enabled: bool,
     pub clipboard_clear_seconds: i64,
     pub show_lock_countdown: bool,
+    pub theme: String,
+    pub minimize_to_tray: bool,
+    pub backup_enabled: bool,
+    pub backup_interval_days: i64,
+    pub backup_folder: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -85,6 +95,11 @@ impl Default for AppConfig {
             audit_enabled: true,
             clipboard_clear_seconds: 30,
             show_lock_countdown: true,
+            theme: "dark".to_string(),
+            minimize_to_tray: false,
+            backup_enabled: false,
+            backup_interval_days: 7,
+            backup_folder: None,
         }
     }
 }
