@@ -568,7 +568,7 @@ export function SettingsModal() {
               </div>
 
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                MIT License · All data is stored locally at the path shown in Settings → Data. No telemetry, no cloud, no accounts.
+                GPL-3.0 license License · All data is stored locally at the path shown in Settings → Data. No telemetry, no cloud, no accounts.
               </p>
             </div>
           )}
