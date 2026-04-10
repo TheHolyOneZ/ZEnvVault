@@ -220,4 +220,4 @@ Single encrypted SQLite file. Back it up like any other file.
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+GPL-3.0 license — see [LICENSE](LICENSE) for details.
